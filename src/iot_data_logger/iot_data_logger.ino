@@ -103,23 +103,23 @@ void loop() {
   // now we can switch the LED-Bar
   if(tmpCO2 >= 2000){
     bar.setBits(0b000001111111111); // ALL Lights are on
-  } else if(tmpCO2 >=1800){
+  } else if(tmpCO2 >= 1840){
     bar.setBits(0b000001111111110); // up to 9 Lights are on    
-  } else if(tmpCO2 >=1600){
+  } else if(tmpCO2 >=1680){
     bar.setBits(0b000001111111100); // up to 8 Lights are on    
-  } else if(tmpCO2 >=1400){
+  } else if(tmpCO2 >=1520){
     bar.setBits(0b000001111111000); // up to 7 Lights are on    
-  } else if(tmpCO2 >=1200){
+  } else if(tmpCO2 >=1360){
     bar.setBits(0b000001111110000); // up to 6 Lights are on    
-  } else if(tmpCO2 >=1000){
+  } else if(tmpCO2 >=1200){
     bar.setBits(0b000001111100000); // up to 5 Lights are on    
-  } else if(tmpCO2 >=800){
+  } else if(tmpCO2 >=1040){
     bar.setBits(0b000001111000000); // up to 4 Lights are on    
-  } else if(tmpCO2 >=600){
+  } else if(tmpCO2 >=880){
     bar.setBits(0b000001110000000); // up to 3 Lights are on    
-  } else if(tmpCO2 >=400){
+  } else if(tmpCO2 >=720){
     bar.setBits(0b000001100000000); // up to 2 Lights are on    
-  } else if(tmpCO2 >=200){
+  } else if(tmpCO2 >=560){
     bar.setBits(0b000001000000000); // up to 1 Lights are on    
   } else {
     bar.setBits(0b000000000000000); // ALL Lights are OFF    
