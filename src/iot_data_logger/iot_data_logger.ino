@@ -5,6 +5,12 @@
 #define Drv LFlash          // for usage with Internal Flash
 #define DEBUG 0             // for usage with Co2 Sensor
 
+// Date and time functions using a DS1307 RTC connected via I2C and Wire lib
+#include <Wire.h>
+#include "RTClib.h"
+
+RTC_DS1307 rtc;
+
 // define log ID
 int logID = 0;
 
@@ -20,7 +26,7 @@ int tmpCO2 = 0;
 
 // Initialize DHT sensor. 
 #define DHTTYPE DHT22     // DHT 22 (AM2302)
-#define DHTPIN 2          // what digital pin we're connected to
+#define DHTPIN 3          // what digital pin we're connected to
 DHT dht(DHTPIN, DHTTYPE);
 
 // Initialize Co2 sensor.
@@ -41,6 +47,11 @@ void setup() {
   Serial1.begin(9600);   // Sensor uses Serial1 on Photon
   Serial.begin(115200);  // This is the USB serial port on the Photon => used by sensor
   
+  Serial.begin(57600);
+  if (! rtc.begin()) {
+    Serial.println("Couldn't find RTC");
+    while (1);
+  }
   // init drive
   pinMode(10, OUTPUT); //needed for SD card
   if(!Drv.begin())
@@ -74,6 +85,7 @@ void setup() {
 
 // TODO Software Architecture => split this method and Refactor into a modular concept
 void loop() {
+  DateTime now = rtc.now();
 
   // Wait a few seconds between measurements.
   delay(1000);
@@ -132,7 +144,21 @@ void loop() {
   LFile dataFile = Drv.open(file, FILE_WRITE);
   if (dataFile)
   {
+    // write to file
+    // log current DATETIME
+    dataFile.print(now.year(), DEC);
+    dataFile.print('-');
+    dataFile.print(now.month(), DEC);
+    dataFile.print('-');
+    dataFile.print(now.day(), DEC);
+    dataFile.print(' ');
+    dataFile.print(now.hour(), DEC);
+    dataFile.print(':');
+    dataFile.print(now.minute(), DEC);
+    dataFile.print(':');
+    dataFile.print(now.second(), DEC);
     // log current data
+    dataFile.print(";");
     dataFile.print(logID);
     dataFile.print(";");
     dataFile.print(tmpH);
@@ -142,19 +168,6 @@ void loop() {
     dataFile.print(tmpCO2);
     dataFile.println(";");
     dataFile.close();
-    // debug to console current data
-    Serial.print("File written. Current Sensor Data: \t");
-    Serial.print("Humidity: ");
-    Serial.print(tmpH);
-    Serial.print("%\t");
-    Serial.print("Temperature: ");
-    Serial.print(tmpT);
-    Serial.print(" *C ");
-    Serial.print("\t");
-    Serial.print("CO2: ");
-    Serial.print(tmpCO2);
-    // TODO add timestamp for easier analysing measurement logs.
-    Serial.println("");
   }
   else Serial.println("Error opening file.");
 
