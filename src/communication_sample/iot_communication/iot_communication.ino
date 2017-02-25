@@ -10,7 +10,7 @@
 
 // WIFI Settings
 char ssid[] = "wireless4home";  //  your network SSID (name)
-char pass[] = "1tm3dv!?";       // your network password
+char pass[] = "...";       // your network password
 
 unsigned int localPort = 2390;      // local port to listen for UDP packets
 
