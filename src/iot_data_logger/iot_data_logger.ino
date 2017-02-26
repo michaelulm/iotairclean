@@ -1,4 +1,4 @@
-
+#include <avr/dtostrf.h>
 #include <LFlash.h>         // Internal Flash
 #include "DHT.h"            // DHT Sensor (Humidity and Temperature)
 #include <Grove_LED_Bar.h>  // LED-Bar
@@ -8,8 +8,25 @@
 // Date and time functions using a DS1307 RTC connected via I2C and Wire lib
 #include <Wire.h>
 #include "RTClib.h"
-
 RTC_DS1307 rtc;
+
+// WIFI
+#include <LWiFi.h>
+#include <LWiFiUdp.h>
+#include <LWiFiClient.h>
+
+// WIFI Settings
+char ssid[] = "wireless4home";  //  your network SSID (name)
+char pass[] = "...";       // your network password
+
+LWiFiClient wifiClient;
+
+// MQTT
+#include <PubSubClient.h> // http://knolleary.net/arduino-client-for-mqtt/
+
+// MQTT Settings
+byte mqttBroker[] = { 192, 168, 100, 191 };// IP des MQTT Servers
+PubSubClient mqttClient(wifiClient);
 
 // define log ID
 int logID = 0;
@@ -68,24 +85,38 @@ void setup() {
   file_name.toCharArray(file, 14);
 
   // mark new start of sensor logging
-  LFile dataFile = Drv.open(file, FILE_WRITE);
+  /*LFile dataFile = Drv.open(file, FILE_WRITE);
   if (dataFile)
   {
     dataFile.println("---------- START NEW SENSOR LOGGING ---------- ");
     dataFile.close();
     Serial.println("File written.");
-  }
+  }*/
   
   // starts DHT Sensor
   dht.begin();
   // nothing to initialize for LED-Bar
   bar.begin();
-  
+
+
+  /* WIFI CONNECTION */
+  // attempt to connect to Wifi network:
+  LWiFi.begin();
+  while (!LWiFi.connectWPA(ssid, pass))
+  {
+    delay(1000);
+    Serial.println("retry WiFi AP");
+  }
+  Serial.println("Connected to wifi");
+  printWifiStatus();
+
+  /* MQTT CONNECTION */
+  mqttClient.setServer( mqttBroker, 1883 );
+  mqttClient.setCallback( callback );
 }
 
 // TODO Software Architecture => split this method and Refactor into a modular concept
 void loop() {
-  DateTime now = rtc.now();
 
   // Wait a few seconds between measurements.
   delay(1000);
@@ -141,10 +172,10 @@ void loop() {
   logID++;
 
   // write log file
-  LFile dataFile = Drv.open(file, FILE_WRITE);
-  if (dataFile)
-  {
-    // write to file
+  //LFile dataFile = Drv.open(file, FILE_WRITE);
+  //if (dataFile)
+  //{
+    /*// write to file
     // log current DATETIME
     dataFile.print(now.year(), DEC);
     dataFile.print('-');
@@ -167,12 +198,89 @@ void loop() {
     dataFile.print(";");
     dataFile.print(tmpCO2);
     dataFile.println(";");
-    dataFile.close();
-  }
-  else Serial.println("Error opening file.");
+    dataFile.close();*/
 
+    
+  //}
+  //else Serial.println("Error opening file.");
+
+  /* MQTT CONNECTION */
+     // Aufbau der Verbindung mit MQTT falls diese nicht offen ist.
+     if (!mqttClient.connected()) {       
+        while (!mqttClient.connected()) {
+          Serial.print("Connecting to MQTT broker ...");
+          // Attempt to connect
+          if ( mqttClient.connect("LinkIt One Client") ) { // Better use some random name
+            Serial.println( "[DONE]" );
+            // Publish a message on topic "outTopic"
+            mqttClient.publish( "iotairclean","Hello, This is LinkIt One" );
+          // Subscribe to topic "inTopic"
+            mqttClient.subscribe( "iotairclean" );
+          } else {
+            Serial.print( "[FAILED] [ rc = " );
+            Serial.print( mqttClient.state() );
+            Serial.println( " : retrying in 5 seconds]" );
+            // Wait 5 seconds before retrying
+            delay( 5000 );
+          }
+        }
+     }
+    /* MQTT PUBLISHING */
+    // Buffer big enough for 7-character float
+    char resultT[5]; 
+    char resultH[5];
+    char resultCO2[7];
+    dtostrf(tmpT, 6, 2, resultT); // Leave room for too large numbers!
+    dtostrf(tmpH, 6, 2, resultH);
+    dtostrf(tmpCO2, 6, 2, resultCO2);
+
+    DateTime now = rtc.now();
+
+     // Create json data to send
+    String data = "{\"t\": " + String(resultT) + ", \"h\": " + String(resultH) + ", \"co2\": " + String(resultCO2) + ", \"station\": \"michaelulm@home\", \"measured\": \""+ String(now.year(), DEC) +"-"+ String(now.month(), DEC) +"-"+ String(now.day(), DEC) + " " + String(now.hour(), DEC) +":"+ String(now.minute(), DEC) +":"+ String(now.second(), DEC) + "\" }";
+    // Get the data string length
+    int length = data.length();
+    char msgBuffer[length];
+    // Convert data string to character buffer
+    data.toCharArray(msgBuffer,length+1);
+
+    // Send information to mqtt topic
+    mqttClient.publish("iotairclean", msgBuffer);
+
+    // Call the loop continuously to establish connection to the server
+    mqttClient.loop();
 }
 
+/*-------- MQTT Code ----------*/
+void callback( char* topic, byte* payload, unsigned int length ) {
+  Serial.print( "Recived message on Topic:" );
+  Serial.print( topic );
+  Serial.print( "    Message:");
+  for (int i=0;i<length;i++) {
+    Serial.print( (char)payload[i] );
+  }
+  Serial.println();
+}
+
+/*-------- WIFI code ----------*/
+
+void printWifiStatus()
+{
+  // print the SSID of the network you're attached to:
+  Serial.print("SSID: ");
+  Serial.println(LWiFi.SSID());
+
+  // print your LWiFi shield's IP address:
+  IPAddress ip = LWiFi.localIP();
+  Serial.print("IP Address: ");
+  Serial.println(ip);
+
+  // print the received signal strength:
+  long rssi = LWiFi.RSSI();
+  Serial.print("signal strength (RSSI):");
+  Serial.print(rssi);
+  Serial.println(" dBm");
+}
 
 bool dataReceiveCo2(void)
 {

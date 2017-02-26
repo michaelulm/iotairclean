@@ -10,9 +10,10 @@
 
 // WIFI Settings
 char ssid[] = "wireless4home";  //  your network SSID (name)
-char pass[] = "1tm3dv!?";       // your network password
+char pass[] = "...";       // your network password
 
 unsigned int localPort = 2390;      // local port to listen for UDP packets
+int msgCounter = 0;
 
 // Date Time Settings
 //datetimeInfo t;
@@ -30,7 +31,7 @@ LWiFiUDP Udp;
 LWiFiClient wifiClient;
 
 // MQTT Settings
-byte mqttBroker[] = { 192, 168, 100, 195 };// IP des MQTT Servers
+byte mqttBroker[] = { 192, 168, 100, 191 };// IP des MQTT Servers
 PubSubClient mqttClient(wifiClient);
 
 void setup() {
@@ -76,10 +77,10 @@ void loop() {
     getNtpTime();
 
   } else {
-    Serial.println("loop...");
+    msgCounter = msgCounter + 1;
     // get current time 
-    delay(1000);
-    digitalClockDisplay();
+    delay(5000);
+    //digitalClockDisplay();
      // Aufbau der Verbindung mit MQTT falls diese nicht offen ist.
      if (!mqttClient.connected()) {       
         while (!mqttClient.connected()) {
@@ -100,16 +101,21 @@ void loop() {
           }
         }
      }
-     
-     // Auslesen der Temperatur
-     //TempSensors.requestTemperatures();
-     // Bei Änderungen zum vorherigen Wert Publizieren
-     //if (tempC != TempSensors.getTempCByIndex(0) ) {
-     //tempC = TempSensors.getTempCByIndex(0);
-     // Publizierung des Wertes. Vorher Converierung vn float zu String.
-     mqttClient.publish("/iotairclean", "TEST");
-     //}
-     //mqttClient.loop(); // Schleife für MQTT
+
+     // Create data string to send to ThingSpeak
+      String data = "Test Message Nr. " + String(msgCounter, DEC);
+      // Get the data string length
+      int length = data.length();
+      char msgBuffer[length];
+      // Convert data string to character buffer
+      data.toCharArray(msgBuffer,length+1);
+      Serial.println(msgBuffer);
+
+     // Send information to mqtt topic
+     mqttClient.publish("iotairclean", msgBuffer);
+
+     // Call the loop continuously to establish connection to the server
+     mqttClient.loop();
   }
   
 
@@ -126,49 +132,7 @@ void callback( char* topic, byte* payload, unsigned int length ) {
   Serial.println();
 }
 
-
-/*-------- Clock code ----------*/
-void digitalClockDisplay(){
-  //LDateTime.getTime(&t);
-  //LDateTime.getRtc(&rtc);
-  // digital clock display of the time
-  /*Serial.print(hour());
-  printDigits(minute());
-  printDigits(second());
-  Serial.print(" ");
-  Serial.print(day());
-  Serial.print(" ");
-  Serial.print(month());
-  Serial.print(" ");
-  Serial.print(year()); 
-  Serial.println(); */
-  /*
- Serial.print("Current ");
- Serial.print(t.mon);
- Serial.print("/");
- Serial.print(t.day);
- Serial.print("/");
- Serial.print(t.year);
- Serial.print(" ");
- Serial.print(t.hour);
- Serial.print(":");
- Serial.print(t.min);
- Serial.print(":");
- Serial.print(t.sec);
- Serial.println();*/
-}
-
-void printDigits(int digits){
-  // utility function for digital clock display: prints preceding colon and leading 0
-  Serial.print(":");
-  if(digits < 10)
-    Serial.print('0');
-  Serial.print(digits);
-}
-
-
 /*-------- NTP code ----------*/
-
 unsigned long getNtpTime()
 {
   sendNTPpacket(timeServer);
@@ -209,17 +173,6 @@ unsigned long getNtpTime()
     time_t t = epoch; 
     //struct tm *aTime = localtime(&t);
     Serial.println(t);
-
-    /*
-    datetimeInfo now;
-    now.year = 2017;
-    now.mon =  2;
-    now.day =  10;
-    now.hour = (epoch  % 86400L) / 3600;
-    now.min = (epoch  % 3600) / 60;
-    now.sec = epoch % 60;
-*/
-    //setTime(2);
     // set current time
     //LDateTime.setTime(&now);
     gotTime = true;
@@ -282,11 +235,3 @@ void printWifiStatus()
 }
 
 
-/*-------- Measurement code ----------*/
-
-
-void handleMeasurement() {
-
-  Serial.println("TEST");
-  
-}
