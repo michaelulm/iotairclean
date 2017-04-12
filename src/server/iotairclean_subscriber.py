@@ -71,7 +71,9 @@ while True:
            "humidity": jmsg['h'],
            "co2": jmsg['co2'],
            "measured": datetime.strptime(jmsg['measured'], "%Y-%m-%d %H:%M:%S"),
-           "station": jmsg['station']
+           "station": jmsg['station'],
+           "location": jmsg['location'],
+           "room": jmsg['room']
           })
 
     except:
