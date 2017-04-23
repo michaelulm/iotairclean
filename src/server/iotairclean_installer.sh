@@ -17,3 +17,8 @@ sudo /etc/init.d/php5-fpm restart
 
 # install ntp 
 sudo apt-get -y install ntpdate
+
+# download current update script
+wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/backend/iotairclean_update.sh
+chmod +x iotairclean_update.sh
+./iotairclean_update.sh

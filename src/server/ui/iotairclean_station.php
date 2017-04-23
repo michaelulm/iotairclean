@@ -32,7 +32,7 @@ try
 				echo "<br/>Temperature: " . $values["temperature"] . "C";
 				echo "<br/>Humidity: " . $values["humidity"] . "%";
 				echo "<br/>CO2: " . $values["co2"] . "ppm";
-				echo "<br/>measured: " . date('d.m.Y H:i:s', $values["measured"]);
+				echo "<br/>measured: "  $values["measured"];
 
                                 echo "<br/>Location: " . $values["location"];
                                 echo "<br/>Room: " . $values["room"];
