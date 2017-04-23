@@ -3,7 +3,7 @@ echo '<h2>PHP + MongoDB Test</h2>';
 
 // some configs for easier customizing
 $stationname = "wohnzimmer@home";
-if(isset($_GET["stationname"))
+if(isset($_GET["stationname"]))
 	$stationname = $_GET["stationname"];
 
 try
@@ -32,7 +32,7 @@ try
 				echo "<br/>Temperature: " . $values["temperature"] . "C";
 				echo "<br/>Humidity: " . $values["humidity"] . "%";
 				echo "<br/>CO2: " . $values["co2"] . "ppm";
-				echo "<br/>measured: " . date('d.m.Y H:i:s', $values["measured"]->sec);
+				echo "<br/>measured: " . date('d.m.Y H:i:s', $values["measured"]);
 
                                 echo "<br/>Location: " . $values["location"];
                                 echo "<br/>Room: " . $values["room"];

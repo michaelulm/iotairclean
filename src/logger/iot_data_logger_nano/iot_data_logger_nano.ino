@@ -1,6 +1,9 @@
 ////////////  IoT AirClean Settings
-String room = "wohnzimmer";
-String location = "home";
+String room = "testraum";
+String location = "Elisabeth";
+// TODO currently high amount of data => MongoDB will get an out of memory error otherwise, we have to find a solution
+int intervalMeasurement = 30000; // each half minute
+//int intervalMeasurement = 1000; // each second
 
 //////////// INCLUDE ALL WE NEED
 #include <SoftwareSerial.h>
@@ -10,7 +13,7 @@ String location = "home";
 // CO2 Sensor
 #include <NDIR_SoftwareSerial.h>
 // RTC
-#include "RTClib.h"
+//#include "RTClib.h"
 
 //////////// INITIALIZE ALL STUFF WE NEED
 // Initialize DHT sensor. 
@@ -26,7 +29,7 @@ NDIR_SoftwareSerial mySensor(11, 12);
 SoftwareSerial xbee(8,9); // RX, TX
 
 // Date and time functions using a DS1307 RTC connected via I2C and Wire lib
-RTC_DS1307 rtc;
+//RTC_DS1307 rtc;
 
 // defines tmp Values, for easier logging, 
 // only new values will be stored in tmpValues
@@ -47,10 +50,10 @@ void setup() {
   xbee.begin( 9600 );
   
   // start with RTC
-  if (! rtc.begin()) {
+  /*if (! rtc.begin()) {
     Serial.println("Couldn't find RTC");
     while (1);
-  }
+  }*/
   
   // start with co2 sensor
   if (mySensor.begin()) {
@@ -66,7 +69,7 @@ void setup() {
 void loop() {
 
   // Wait a few seconds between measurements.
-  delay(1000);
+  delay(intervalMeasurement);
 
   // Reading temperature or humidity takes about 250 milliseconds!
   // Read humidity as percent value
@@ -92,10 +95,13 @@ void loop() {
   }
 
   // get current time from preconfigured RTC
-  DateTime now = rtc.now();
+  //DateTime now = rtc.now();
 
    // Create json data to send
-  String data = "{\"t\": " + String(tmpT) + ", \"h\": " + String(tmpH) + ", \"co2\": " + String(tmpCO2) + ", \"station\": \"" + room +"@"+location+"\", \"location\": \"" +location+"\", \"room\": \"" + room +"\", \"measured\": \""+ String(now.year(), DEC) +"-"+ String(now.month(), DEC) +"-"+ String(now.day(), DEC) + " " + String(now.hour(), DEC) +":"+ String(now.minute(), DEC) +":"+ String(now.second(), DEC) + "\" }";
+   // with RTC
+   //String data = "{\"t\": " + String(tmpT) + ", \"h\": " + String(tmpH) + ", \"co2\": " + String(tmpCO2) + ", \"station\": \"" + room +"@"+location+"\", \"location\": \"" +location+"\", \"room\": \"" + room +"\", \"measured\": \""+ String(now.year(), DEC) +"-"+ String(now.month(), DEC) +"-"+ String(now.day(), DEC) + " " + String(now.hour(), DEC) +":"+ String(now.minute(), DEC) +":"+ String(now.second(), DEC) + "\" }";
+   // without RTC
+   String data = "{\"t\": " + String(tmpT) + ", \"h\": " + String(tmpH) + ", \"co2\": " + String(tmpCO2) + ", \"station\": \"" + room +"@"+location+"\", \"location\": \"" +location+"\", \"room\": \"" + room +"\" }";
 
   // print for debugging
   Serial.println(data);

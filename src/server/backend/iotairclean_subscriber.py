@@ -33,7 +33,7 @@ def on_message(client, userdata, msg):
          "temperature": jmsg['t'], 
          "humidity": jmsg['h'], 
          "co2": jmsg['co2'], 
-         "measured": datetime.strptime(jmsg['measured'], "%Y-%m-%d %H:%M:%S"),
+         "measured": datetime.now().strftime ( "%Y-%m-%d %H:%M:%S"),
          "station": jmsg['station']
         })
     except:
@@ -70,7 +70,7 @@ while True:
            "temperature": jmsg['t'],
            "humidity": jmsg['h'],
            "co2": jmsg['co2'],
-           "measured": datetime.strptime(jmsg['measured'], "%Y-%m-%d %H:%M:%S"),
+           "measured": datetime.now().strftime ( "%Y-%m-%d %H:%M:%S"),
            "station": jmsg['station'],
            "location": jmsg['location'],
            "room": jmsg['room']
