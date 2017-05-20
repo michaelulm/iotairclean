@@ -39,11 +39,11 @@ def on_message(client, userdata, msg):
     except:
       print('TODO Error Handling')
 
-client = mqtt.Client()
+client = mqtt.Client(transport="websockets")
 client.on_connect = on_connect
 client.on_message = on_message
 
-#client.connect("127.0.0.1", 1883, 60)
+client.connect("192.168.100.191", 1884, 60)
 
 # Blocking call that processes network traffic, dispatches callbacks and
 # handles reconnecting.
@@ -75,7 +75,7 @@ while True:
            "location": jmsg['location'],
            "room": jmsg['room']
           })
-
+        client.publish("/iotairclean", incoming)
     except:
       print 'TODO Error Handling' 
       print "Unexpected error:", sys.exc_info()[0]
