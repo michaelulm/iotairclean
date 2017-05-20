@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<body>
+	<!-- http://www.hivemq.com/blog/mqtt-client-library-encyclopedia-paho-js -->
+    <!-- <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script> -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
+
+	
+    <script type="text/javascript">
+	// Create a client instance: Broker, Port, Websocket Path, Client ID
+var d = new Date();
+var n = d.getTime();
+<!-- client = new Paho.MQTT.Client("iot.eclipse.org", Number(80), "/ws", "clientId"); -->
+client = new Paho.MQTT.Client("192.168.100.191", Number(1884), "clientId"+n);
+ 
+// set callback handlers
+client.onConnectionLost = function (responseObject) {
+    console.log("Connection Lost: "+responseObject.errorMessage);
+}
+ 
+client.onMessageArrived = function (message) {
+  console.log("Message Arrived: "+message.payloadString);
+}
+ 
+// Called when the connection is made
+function onConnect(){
+    console.log("Connected!");
+	client.subscribe("/iotairclean");  
+	message = new Paho.MQTT.Message("Hello");
+	message.destinationName = "/iotairclean";
+	client.send(message); 
+}
+ 
+// Connect the client, providing an onConnect callback
+client.connect({
+    onSuccess: onConnect
+	//,mqttVersion: 3
+});
+
+
+</script>
+</body>
+</html>
