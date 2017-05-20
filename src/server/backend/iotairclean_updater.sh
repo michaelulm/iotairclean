@@ -13,7 +13,11 @@ echo "IoT AirClean Background Tasks updated!";
 cd /usr/share/nginx/html
 sudo rm iot_airclean_station.php
 sudo rm iotairclean_station.php
+sudo rm iotairclean_visualization.php
+sudo rm iotairclean_logo.png
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/iotairclean_station.php
+sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/iotairclean_visualization.php
+sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/iotairclean_logo.png
 
 echo "IoT AirClean UI updated!"
 
