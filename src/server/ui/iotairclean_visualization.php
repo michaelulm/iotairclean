@@ -40,7 +40,7 @@ if(isset($_GET["stationname"]))
 	</style>
   </head>
   <body>
-	<img src="iot_airclean_logo_transparent_lang_small.png" />
+	<img src="iotairclean_logo.png" />
 	<h2>Visualisierung</h2>
 	<div class="container">
 		<div class="subcontainer-big">
