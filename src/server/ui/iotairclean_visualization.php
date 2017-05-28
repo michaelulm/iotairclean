@@ -34,6 +34,11 @@ $stationname = "wohnzimmer@home";
 if(isset($_GET["stationname"]))
 	$stationname = $_GET["stationname"];
 
+
+// get mongo db connection 
+$mongo = new Mongo(/*"localahost:27101"*/);
+$iotairclean = $mongo->iotairclean;
+
 ?>
 
 <!DOCTYPE html>
@@ -52,28 +57,81 @@ if(isset($_GET["stationname"]))
 	<script src="js/moment.min.js"></script>
 	<script src="js/Chart.min.js"></script>
 	<script src="js/mqttws31.min.js" type="text/javascript"></script>
+	<style>
+	.classWithPad { margin:10px; padding:10px; }
+	</style>
   </head>
   <body>
 	<img src="iotairclean_logo.png" />
 	<h2>Visualisierung</h2>
-	
-	<div class="row">
-		<div class="col-md-2">
-			<form>
+	<form id="compareForm">
+		<div class="row">
+			<div class="col-md-2"></div>
+			<div class="col-md-8">
 				
-				  <input id="compareForm" type="date" name="compareDate" id="compareDate" value="<?php echo date('Y-m-d', $compareToOrig); ?>" >
-				  <input class="btn btn-default" type="submit" value="vergleichen">
-				  <a class="btn btn-default" href="<?php echo basename($_SERVER["SCRIPT_FILENAME"], '') ;?>">zurücksetzen</a>
-			</form>	
+					<select name="stationname" class="form-control">
+					<?php
+
+						// get all available stations
+						$measurements = $iotairclean->measurements;
+
+
+						$keys = array("station" => 1);
+						$initial = array("count" => 0);
+						$reduce = "function (obj, prev) { prev.count++; }";
+						$stations = $measurements->group($keys, $initial, $reduce);
+
+						foreach ( $stations as $id => $values )
+						{
+							foreach($values as $value){
+								$selected = "";
+								$station = $value["station"];
+								$counter = $value["count"];
+								if($stationname == $station)
+									$selected = "selected";
+								echo "<option value='$station' $selected>$station ($counter Messungen)</option>";
+							}
+						}
+					?>
+					</select>
+					  <input type="date" name="compareDate" id="compareDate" value="<?php echo date('Y-m-d', $compareToOrig); ?>" >
+					  <input class="btn btn-default" type="submit" value="vergleichen">
+					  <a class="btn btn-default" href="<?php echo basename($_SERVER["SCRIPT_FILENAME"], '') ;?>">zurücksetzen</a>
+			</div>
+			<div class="col-md-2"></div>
 		</div>
+	</form>	
+	<div class="row">
+		<div class="col-md-2"></div>
 		<div class="col-md-8">
 			<canvas id="canvas"></canvas>
 		</div>
-
+		<div class="col-md-2"></div>
+	</div>
+	<div class="row">
+		<div class="col-md-2"></div>
+		<div class="col-md-2"></div>
 		<div class="col-md-2">
-					<canvas id="canvasPie"></canvas>
-		</div>
-		<script>
+			<h3>Aktueller Zeitraum</h3>
+			<canvas id="canvasPie"></canvas>
+		</div>		
+		<div class="col-md-2">
+			<h3>Vergleichszeitraum</h3>
+			<canvas id="canvasPieCompare"></canvas>
+		</div>		
+		<div class="col-md-2"></div>
+		<div class="col-md-2"></div>
+	</div>
+	
+	
+	
+	
+	
+	
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="js/bootstrap.min.js"></script>
+	
+	<script>
 
         var timeFormat = 'DD.MM.YYYY HH:mm:ss';
         var color = Chart.helpers.color;
@@ -149,9 +207,6 @@ if(isset($_GET["stationname"]))
 
 try
 {
-		// get mongo db connection 
-        $mongo = new Mongo(/*"localahost:27101"*/);
-        $iotairclean = $mongo->iotairclean;
         $measurements = $iotairclean->measurements;
 		
 		// Read all measurements of the current day 
@@ -437,13 +492,169 @@ catch(MongoException $e)
 					}
 				}
 			});
+			
+			// second Pie Chart for overview
+			var ctxPieCompare = document.getElementById("canvasPieCompare").getContext("2d");
+			// For a pie chart
+			var myPieChartCompare = new Chart(ctxPieCompare,{
+				type: 'pie',
+				data: {
+					labels: [
+						"Frischluft",
+						"in Ordnung",
+						"schlecht",
+						"Handlungsbedarf"
+					],
+					datasets: [
+						{
+							data: [ <?php echo $rangeCompare[400];?>,
+									<?php echo $rangeCompare[800];?>,
+									<?php echo $rangeCompare[1200];?>,
+									<?php echo $rangeCompare[1600];?>],
+							backgroundColor: [
+								"#008000",
+								"#FFFF00",
+								"#FFA500",
+								"#FF0000"
+							],
+							hoverBackgroundColor: [
+								"#008000",
+								"#FFFF00",
+								"#FFA500",
+								"#FF0000"
+							]
+						}]
+				},
+				options: {
+					legend: {
+						display: false
+					},
+					animation:{
+						animateScale:true
+					}
+				}
+			});
         });
 		
 		</script>
 		
-	</div>
 	
-    <!-- Include all compiled plugins (below), or include individual files as needed -->
-    <script src="js/bootstrap.min.js"></script>
+	<div class="row">
+		<div class="col-md-2"></div>
+		<div class="col-md-2"></div>
+		<div class="col-md-4 classWithPad">
+			<table  class="table">
+				<tr>
+					<th></th>
+					<th>Aktueller Zeitraum</td>
+					<td>Vergleichszeitraum</td>
+				</tr>
+				<tr>
+					<th>Frischluft</th>
+					<?php 
+						$tdClass = "";
+						if($range[400] > $rangeCompare[400]){
+							$tdClass = "class='success'";
+						} 
+												
+						$compare = $range[400] / $rangeCompare[400];
+
+						// show success if we have an almost equal measurements
+						if($compare > 0.95){
+							$tdClass = "class='success'";
+						} // raise a warning if there are not so good measurements
+						else if($compare > 0.8){
+							$tdClass = "class='warning'";
+						} else  {
+							$tdClass = "class='danger'";
+						}
+
+						
+
+						?>
+					<td <?php echo $tdClass; ?>><?php echo $range[400];?></td>
+					<td><?php echo $rangeCompare[400];?></td>
+				</tr>
+				<tr>
+					<th>in Ordnung</th>
+					<?php 						
+						$tdClass = "";
+						$compare = $range[800] / $rangeCompare[800];
+
+						// show success if we have an almost equal measurements
+						if($compare > 0.95){
+							$tdClass = "class='success'";
+						} // raise a warning if there are not so good measurements
+						else if($compare > 0.8){
+							$tdClass = "class='warning'";
+						} else {
+							$tdClass = "class='danger'";
+							
+							if($range[800] < $range[400] // there are better values available
+								&& $range[800] > ($range[1200] + $range[1600])	// there are less bad values available
+								){
+								$tdClass = "class='success'";
+							}else if ($range[800] > ($range[1200] + $range[1600])){
+								$tdClass = "class='warning'";
+							}
+						}
+						
+						
+						if($range[800] == 0 ){
+							$tdClass = "";
+						}
+						
+						?>
+					<td <?php echo $tdClass; ?>><?php echo $range[800];?></td>
+					<td><?php echo $rangeCompare[800];?></td>
+				</tr>
+				<tr>
+					<th>schlecht</th>
+					<?php 
+						$tdClass = "";
+						$compare = $range[1200] / $rangeCompare[1200];
+						if($compare > 1.1){
+							$tdClass = "class='danger'";
+						}
+						else if($compare > 0.95){
+							$tdClass = "class='warning'";
+						}
+						
+						?>
+					<td <?php echo $tdClass; ?>><?php echo $range[1200];?></td>
+					<td><?php echo $rangeCompare[1200];?></td>
+				</tr>
+				<tr>
+					<th>Handlungsbedarf</th>
+					<?php 
+						// no measurements for this area => success
+						$tdClass = "success";
+						// more than 0 values should raise a warning
+						if($range[1600] > 0){
+							$tdClass = "class='warning'";
+						}
+						// if there are more values than in the compare measurements, it must be raise a danger warning
+						if($range[1600] > $rangeCompare[1600]){
+							$tdClass = "class='danger'";
+						}
+						?>
+					<td <?php echo $tdClass; ?>><?php echo $range[1600];?></td>
+					<td><?php echo $rangeCompare[1600];?></td>
+				</tr>
+			</table>
+		</div>
+		<div class="col-md-2"></div>
+		<div class="col-md-2"></div>
+	
+	</div>
+	<div class="row">
+		<div class="col-md-4">
+		</div>
+		<div class="col-md-4 text-center classWithPad">
+			mehr Details zu IoT AirClean auf <a href="http://www.iot-airclean.at">www.iot-airclean.at</a>
+		</div>
+		<div class="col-md-4">
+		</div>
+	</div>
   </body>
 </html>
