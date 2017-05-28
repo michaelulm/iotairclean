@@ -641,6 +641,9 @@ catch(MongoException $e)
 					<td <?php echo $tdClass; ?>><?php echo $range[1600];?></td>
 					<td><?php echo $rangeCompare[1600];?></td>
 				</tr>
+				<tr>
+					<td colspan="3">(Anzahl der Messungen)<td>
+				</tr>
 			</table>
 		</div>
 		<div class="col-md-2"></div>
