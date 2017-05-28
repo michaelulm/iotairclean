@@ -3,6 +3,18 @@
 // to get all data of current day
 $timestamp = strtotime('today midnight');
 
+// compare yesterday for Standard
+$compareDate = "yesterday";
+if(isset($_GET["compareDate"]))
+	$compareDate = $_GET["compareDate"];
+
+// TODO SELECT DATE
+$compareTo = strtotime("$compareDate midnight");
+$compareToOrig = $compareTo;
+
+// for later compare
+$diffInSeconds = $timestamp - $compareTo;
+
 // check daylight saving time
 if(date('I') == 1)
 	$timestamp = $timestamp - (3600 * 1);
@@ -10,45 +22,56 @@ else
 	$timestamp = $timestamp - (3600 * 2);
 
 $measuredSince = date("Y-m-d H:i:s", $timestamp);
+$measuredTo = date("Y-m-d H:i:s", $timestamp + (3600 * 24));
+
+// compare now with yesterday 
+$compareFrom = $compareTo - (3600 * 24);
+$compareFrom 	= date("Y-m-d H:i:s", $compareFrom);
+$compareTo	 	= date("Y-m-d H:i:s", $compareTo);
 
 // some configs for easier customizing
 $stationname = "wohnzimmer@home";
 if(isset($_GET["stationname"]))
 	$stationname = $_GET["stationname"];
 
-?><!DOCTYPE html>
-<html>
+?>
+
+<!DOCTYPE html>
+<html lang="en">
   <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+	
     <title>IoT AirClean Visualisierung</title>
-    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.13.0/moment.min.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
-	<style>
-	.container {
-	  width: 80%;
-	  margin: 15px auto;
-	}
-	.subcontainer-small{
-		width:25%;
-		float:left;
-	}
-	.subcontainer-big{
-		width:75%;
-		float:left;
-	}
-	</style>
+	 <!-- Bootstrap -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+	
+    <script src="js/jquery-3.2.1.min.js"></script>
+	<script src="js/moment.min.js"></script>
+	<script src="js/Chart.min.js"></script>
+	<script src="js/mqttws31.min.js" type="text/javascript"></script>
   </head>
   <body>
 	<img src="iotairclean_logo.png" />
 	<h2>Visualisierung</h2>
-	<div class="container">
-		<div class="subcontainer-big">
+	
+	<div class="row">
+		<div class="col-md-2">
+			<form>
+				
+				  <input id="compareForm" type="date" name="compareDate" id="compareDate" value="<?php echo date('Y-m-d', $compareToOrig); ?>" >
+				  <input class="btn btn-default" type="submit" value="vergleichen">
+				  <a class="btn btn-default" href="<?php echo basename($_SERVER["SCRIPT_FILENAME"], '') ;?>">zurücksetzen</a>
+			</form>	
+		</div>
+		<div class="col-md-8">
 			<canvas id="canvas"></canvas>
 		</div>
 
-		<div class="subcontainer-small">
-			<canvas id="canvasPie"></canvas>
+		<div class="col-md-2">
+					<canvas id="canvasPie"></canvas>
 		</div>
 		<script>
 
@@ -72,7 +95,7 @@ if(isset($_GET["stationname"]))
                             x: parseDB(<?php echo "'$measuredSince'"; ?>),
                             y: 400
                         },{
-                            x: newDateString(),
+                            x: parseDB(<?php echo "'$measuredTo'"; ?>),
                             y: 400
                         }],
                     }, {
@@ -85,7 +108,7 @@ if(isset($_GET["stationname"]))
                             x: parseDB(<?php echo "'$measuredSince'"; ?>),
                             y: 800
                         },{
-                            x: newDateString(),
+                            x: parseDB(<?php echo "'$measuredTo'"; ?>),
                             y: 800
                         }],
                     }, {
@@ -98,7 +121,7 @@ if(isset($_GET["stationname"]))
                             x: parseDB(<?php echo "'$measuredSince'"; ?>),
                             y: 1200
                         },{
-                            x: newDateString(),
+                            x: parseDB(<?php echo "'$measuredTo'"; ?>),
                             y: 1200
                         }],
                     }, {
@@ -111,7 +134,7 @@ if(isset($_GET["stationname"]))
                             x: parseDB(<?php echo "'$measuredSince'"; ?>),
                             y: 1600
                         },{
-                            x: newDateString(),
+                            x: parseDB(<?php echo "'$measuredTo'"; ?>),
                             y: 1600
                         }],
                     }, {
@@ -173,6 +196,63 @@ catch(MongoException $e)
 }
 ?>
 							],
+                    },{
+                        label: "Vergleichsmesswerte Messwerte CO2 (ppm)",
+                        backgroundColor: color("#E5FFCC").alpha(0.5).rgbString(),
+                        borderColor: "#E5FFCC",
+						pointRadius: 0,
+						pointHoverRadius: 5,
+                        fill: false,
+                        data: [
+<?php
+
+try
+{
+        $measurements = $iotairclean->measurements;
+		// Read all measurements of the current day 
+        $ms = $measurements
+			->find(array('station' => $stationname, 'measured' 
+					=> array('$gt' => $compareFrom, '$lt' => $compareTo)
+				))
+			->sort(array('measured'=>1))
+		;
+		
+		// prepare range calculation for pie chart
+		$rangeCompare = array(400 => 0, 800 => 0, 1200 => 0, 1600 => 0);
+
+        if ($ms->count() <1)
+        {
+			// currently nothing to do
+        }
+        else
+        {
+			foreach ( $ms as $id => $value )
+			{
+				$measureTime 	= $value["measured"];
+				$ppm 			= $value["co2"];
+				
+				$ppmCalc = floor($ppm / 400) * 400;
+				$rangeCompare[$ppmCalc] = $rangeCompare[$ppmCalc] + 1;
+				
+				// prepare for chart diagram
+				echo "{
+				 x: compareDB('$measureTime'),
+				 y: $ppm
+				 },";
+			}
+        }
+        $mongo->close();
+}
+catch(MongoConnectionException $e)
+{
+	die('Error in connection to MongoDB' . $e->getMessage());
+}
+catch(MongoException $e)
+{
+        die('Error:' . $e->getMessage());
+}
+?>
+							],
                     }]
             }
             ,
@@ -215,6 +295,11 @@ catch(MongoException $e)
 			
 			var duration = moment.duration({'hours' : offset});
 			return moment(value).add(duration);
+		}
+		function compareDB(value){
+			var compareArea = moment.duration({'seconds' : <?php echo $diffInSeconds; ?>});
+			var compareDay  = moment.duration ({'hours' : 24});
+			return moment(value).add(compareArea).add(compareDay);
 		}
 
         function newDate(days) {
@@ -358,5 +443,7 @@ catch(MongoException $e)
 		
 	</div>
 	
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="js/bootstrap.min.js"></script>
   </body>
 </html>

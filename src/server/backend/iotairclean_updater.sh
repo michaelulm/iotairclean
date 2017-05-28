@@ -11,7 +11,6 @@ echo "IoT AirClean Background Tasks updated!";
 
 # Update Current ui
 cd /usr/share/nginx/html
-sudo rm iot_airclean_station.php
 sudo rm iotairclean_station.php
 sudo rm iotairclean_visualization.php
 sudo rm iotairclean_logo.png
