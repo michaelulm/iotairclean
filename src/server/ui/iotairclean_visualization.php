@@ -122,8 +122,165 @@ $iotairclean = $mongo->iotairclean;
 		<div class="col-md-2"></div>
 	</div>
 	
+
+<?php
+	try
+	{
+		// we will need this both arrays later, to reduce server loading time
+		$othersArray = array();
+		
+		# CURRENT MEASUREMENTS
+		$measurements = $iotairclean->measurements;
+		
+		// Read all measurements of the current day 
+		$ms = $measurements
+			->find(array('station' => $stationname, 'measured' => array('$gt' => $measuredSince) ))
+			->sort(array('measured'=>1))
+		;
+		
+		// prepare range calculation for pie chart
+		$range = array(400 => 0, 800 => 0, 1200 => 0, 1600 => 0);
+
+		if ($ms->count() <1)
+		{
+			// currently nothing to do
+		}
+		else
+		{
+			foreach ( $ms as $id => $value )
+			{
+				$measureTime 	= $value["measured"];
+				$ppm 			= $value["co2"];		// part per millions	(CO2 Gehalt der Luft)
+				$temperature	= $value["temperature"];// temperature 			(Temperatur)
+				$humidity		= $value["humidity"];   // humidity				(Luftfeuchtigkeit)
+				
+				$ppmCalc = floor($ppm / 400) * 400;
+				$range[$ppmCalc] = $range[$ppmCalc] + 1;
+								 
+				 // temp store data for other graphics
+				 $othersArray[] = array( 'measured' => $measureTime, 'temperature' => $temperature, 'humidity' => $humidity, "ppm" => $ppm);
+			}
+		}
+		$mongo->close();
+	}
+	catch(MongoConnectionException $e)
+	{
+		die('Error in connection to MongoDB' . $e->getMessage());
+	}
+	catch(MongoException $e)
+	{
+		die('Error:' . $e->getMessage());
+	}
+	
+?>
 	
 	
+	<div class="row">
+		<div class="col-md-12">
+		<?php
+			// TESTING AREA STARTS
+			
+			$nobodyMeasurementsArray = array();
+			// start of nobody
+			$nobodyMeasurementsArray[] = array( "measured" => $measuredSince, "ppm" => 0);
+		
+			// scaleable comparing values 
+			$nrOfMeasuresPerMinute = 2;
+			$diffPPM = 5;		   // max difference value
+			$possibleFailures = 5; // nr of failures
+			$nobodyHereLimit = 90; // Minutes
+		
+			$nobodyHereCounter = 0;
+			$nobodyFailureCounter = 0;
+			$nobodyStart = "";
+			$nobodyUp = 0;
+			$nobodyDown = 0;
+			$nobodyUpCounter = 0;  // counts how many following ups happens
+			$nobodyUpCounterLimit = 10;  
+			
+			$latestPPM = array();
+			
+			foreach($othersArray as $other){
+				// set first measurement
+				if($nobodyStart == ""){
+					$nobodyStart = $other["measured"];
+				}
+				
+				$changePPM = $lastPPM - $other["ppm"];
+				$latestPPM[] = $other["ppm"];
+								
+								
+				// check some more measurement at once to get an overview about up or down
+				$nobodyHereCounter++;
+				$latestDown = 0;
+				foreach($latestPPM as $ppm){
+					if($other["ppm"] <= $ppm){
+						$latestDown++;
+					}
+				}
+				
+				// check some more measurement at once to get an overview about up or down
+				if(count($latestPPM) > 20){
+					array_shift($latestPPM);
+					
+					if($latestDown < 2){
+						$nobodyFailureCounter = $possibleFailures;
+						// echo "<br/>DETECT " . $other["ppm"];
+					}
+				}
+				
+				
+				// now start comparing
+				if($changePPM <= $diffPPM && $changePPM >= -$diffPPM && $nobodyUpCounter < $nobodyUpCounterLimit){
+					$nobodyFailureCounter = 0;
+					$nobodyMeasurementsArrayTemp[] = array( "measured" => $other["measured"], "ppm" => $other["ppm"]);
+					
+					if($changePPM > 0){
+						$nobodyDown++;
+						$nobodyUpCounter = 0;
+					}
+					
+					if($changePPM < 0){
+						$nobodyUp++;
+						$nobodyUpCounter++;
+					}
+					
+				} else if($nobodyFailureCounter < $possibleFailures && $nobodyUpCounter < $nobodyUpCounterLimit){
+					// we accept some failures
+					$nobodyFailureCounter++;						
+				}else {
+					if($nobodyHereCounter > $nobodyHereLimit * $nrOfMeasuresPerMinute
+						&& $nobodyUp / $nobodyDown < 2 // otherwise it must be someone here
+					){
+						echo "<br/>Nobody was here from " . $nobodyStart . " until " . $other["measured"] . " for $nobodyHereCounter with $nobodyFailureCounter (up $nobodyUp, down $nobodyDown)";
+						
+						// visualize nobody was here
+						foreach($nobodyMeasurementsArrayTemp as $id => $value){
+							$nobodyMeasurementsArray[] = $value;
+							unset($nobodyMeasurementsArrayTemp[$id]);
+						}
+					}
+					$nobodyMeasurementsArray[] = array( "measured" => $other["measured"], "ppm" => 0);
+					$nobodyHereCounter = 0;
+					$nobodyUpCounter = 0;
+					$nobodyUp = 0;
+					$nobodyDown = 0;
+					$nobodyStart = $other["measured"];
+					$nobodyMeasurementsArrayTemp = array();
+				}
+				
+				
+				$lastPPM = $other["ppm"];
+				
+			}
+			
+			// end of nobody
+			$nobodyMeasurementsArray[] = array( "measured" => $measuredTo, "ppm" => 0);
+		
+			// TESTING AREA ENDS
+		?>
+		</div>
+	</div>
 	
 	
 	
@@ -204,59 +361,33 @@ $iotairclean = $mongo->iotairclean;
                         fill: false,
                         data: [
 <?php
+						foreach ( $othersArray as $other ){
 
-						try
-						{
-							// we will need this both arrays later, to reduce server loading time
-							$othersArray = array();
-							
-							# CURRENT MEASUREMENTS
-							$measurements = $iotairclean->measurements;
-							
-							// Read all measurements of the current day 
-							$ms = $measurements
-								->find(array('station' => $stationname, 'measured' => array('$gt' => $measuredSince) ))
-								->sort(array('measured'=>1))
-							;
-							
-							// prepare range calculation for pie chart
-							$range = array(400 => 0, 800 => 0, 1200 => 0, 1600 => 0);
+							// prepare for chart diagram
+							echo "{
+							 x: parseDB('".$other['measured']."'),
+							 y: ".$other['ppm']."
+							 },";
+						}
+?>
+							],
+                    }, {
+                        label: "abwesend",
+						yAxisID: "y-axis-ppm",
+                        backgroundColor: color("#C0C0C0").alpha(0.1).rgbString(),
+                        borderColor: "#C0C0C0",
+						pointRadius: 0,
+						pointHoverRadius: 5,
+                        fill: true,
+                        data: [
+<?php
+						foreach ( $nobodyMeasurementsArray as $other ){
 
-							if ($ms->count() <1)
-							{
-								// currently nothing to do
-							}
-							else
-							{
-								foreach ( $ms as $id => $value )
-								{
-									$measureTime 	= $value["measured"];
-									$ppm 			= $value["co2"];		// part per millions	(CO2 Gehalt der Luft)
-									$temperature	= $value["temperature"];// temperature 			(Temperatur)
-									$humidity		= $value["humidity"];   // humidity				(Luftfeuchtigkeit)
-									
-									$ppmCalc = floor($ppm / 400) * 400;
-									$range[$ppmCalc] = $range[$ppmCalc] + 1;
-									
-									// prepare for chart diagram
-									echo "{
-									 x: parseDB('$measureTime'),
-									 y: $ppm
-									 },";
-									 
-									 // temp store data for other graphics
-									 $othersArray[] = array( 'measured' => $measureTime, 'temperature' => $temperature, 'humidity' => $humidity, "ppm" => $ppm);
-								}
-							}
-							$mongo->close();
-						}
-						catch(MongoConnectionException $e)
-						{
-							die('Error in connection to MongoDB' . $e->getMessage());
-						}
-						catch(MongoException $e)
-						{
-							die('Error:' . $e->getMessage());
+							// prepare for chart diagram
+							echo "{
+							 x: parseDB('".$other['measured']."'),
+							 y: ".$other['ppm']."
+							 },";
 						}
 ?>
 							],
@@ -615,19 +746,6 @@ $iotairclean = $mongo->iotairclean;
 		</script>
 		
 	
-	<div class="row">
-		<div class="col-md-12">
-		<?php
-		
-			// TESTING AREA
-		
-		
-		?>
-		
-		
-		</div>
-	
-	</div>
 	
 	<div class="row">
 		<div class="col-md-2"></div>
