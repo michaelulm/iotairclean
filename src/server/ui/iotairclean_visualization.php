@@ -62,12 +62,14 @@ $iotairclean = $mongo->iotairclean;
 	</style>
   </head>
   <body>
-	<img src="iotairclean_logo.png" />
-	<h2>Visualisierung</h2>
+	
+	
 	<form id="compareForm">
 		<div class="row">
-			<div class="col-md-2"></div>
-			<div class="col-md-8">
+			<div class="col-md-6 col-sm-4">
+				<img src="iotairclean_logo_small.png" />	
+			</div>
+			<div class="col-md-6 col-sm-8">
 				
 					<select name="stationname" class="form-control">
 					<?php
@@ -98,15 +100,12 @@ $iotairclean = $mongo->iotairclean;
 					  <input class="btn btn-default" type="submit" value="vergleichen">
 					  <a class="btn btn-default" href="<?php echo basename($_SERVER["SCRIPT_FILENAME"], '') ;?>">zurücksetzen</a>
 			</div>
-			<div class="col-md-2"></div>
 		</div>
 	</form>	
 	<div class="row">
-		<div class="col-md-2"></div>
-		<div class="col-md-8">
+		<div class="col-md-12">
 			<canvas id="canvas"></canvas>
 		</div>
-		<div class="col-md-2"></div>
 	</div>
 	<div class="row">
 		<div class="col-md-2"></div>
@@ -196,7 +195,8 @@ $iotairclean = $mongo->iotairclean;
                             y: 1600
                         }],
                     }, {
-                        label: "aktuelle Messwerte CO2 (ppm)",
+                        label: "CO2 (ppm) aktuell",
+						yAxisID: "y-axis-ppm",
                         backgroundColor: color("#799E1A").alpha(0.5).rgbString(),
                         borderColor: "#799E1A",
 						pointRadius: 0,
@@ -205,54 +205,107 @@ $iotairclean = $mongo->iotairclean;
                         data: [
 <?php
 
-try
-{
-        $measurements = $iotairclean->measurements;
-		
-		// Read all measurements of the current day 
-        $ms = $measurements
-			->find(array('station' => $stationname, 'measured' => array('$gt' => $measuredSince) ))
-			->sort(array('measured'=>1))
-		;
-		
-		// prepare range calculation for pie chart
-		$range = array(400 => 0, 800 => 0, 1200 => 0, 1600 => 0);
+						try
+						{
+							// we will need this both arrays later, to reduce server loading time
+							$othersArray = array();
+							
+							# CURRENT MEASUREMENTS
+							$measurements = $iotairclean->measurements;
+							
+							// Read all measurements of the current day 
+							$ms = $measurements
+								->find(array('station' => $stationname, 'measured' => array('$gt' => $measuredSince) ))
+								->sort(array('measured'=>1))
+							;
+							
+							// prepare range calculation for pie chart
+							$range = array(400 => 0, 800 => 0, 1200 => 0, 1600 => 0);
 
-        if ($ms->count() <1)
-        {
-			// currently nothing to do
-        }
-        else
-        {
-			foreach ( $ms as $id => $value )
-			{
-				$measureTime 	= $value["measured"];
-				$ppm 			= $value["co2"];
-				
-				$ppmCalc = floor($ppm / 400) * 400;
-				$range[$ppmCalc] = $range[$ppmCalc] + 1;
-				
-				// prepare for chart diagram
-				echo "{
-				 x: parseDB('$measureTime'),
-				 y: $ppm
-				 },";
-			}
-        }
-        $mongo->close();
-}
-catch(MongoConnectionException $e)
-{
-	die('Error in connection to MongoDB' . $e->getMessage());
-}
-catch(MongoException $e)
-{
-        die('Error:' . $e->getMessage());
-}
+							if ($ms->count() <1)
+							{
+								// currently nothing to do
+							}
+							else
+							{
+								foreach ( $ms as $id => $value )
+								{
+									$measureTime 	= $value["measured"];
+									$ppm 			= $value["co2"];		// part per millions	(CO2 Gehalt der Luft)
+									$temperature	= $value["temperature"];// temperature 			(Temperatur)
+									$humidity		= $value["humidity"];   // humidity				(Luftfeuchtigkeit)
+									
+									$ppmCalc = floor($ppm / 400) * 400;
+									$range[$ppmCalc] = $range[$ppmCalc] + 1;
+									
+									// prepare for chart diagram
+									echo "{
+									 x: parseDB('$measureTime'),
+									 y: $ppm
+									 },";
+									 
+									 // temp store data for other graphics
+									 $othersArray[] = array( 'measured' => $measureTime, 'temperature' => $temperature, 'humidity' => $humidity, "ppm" => $ppm);
+								}
+							}
+							$mongo->close();
+						}
+						catch(MongoConnectionException $e)
+						{
+							die('Error in connection to MongoDB' . $e->getMessage());
+						}
+						catch(MongoException $e)
+						{
+							die('Error:' . $e->getMessage());
+						}
 ?>
 							],
-                    },{
-                        label: "Vergleichsmesswerte Messwerte CO2 (ppm)",
+                    }, {
+                        label: "Temperatur (°C) aktuell",
+						yAxisID: "y-axis-dht",
+                        backgroundColor: color("#FF2853").alpha(0.5).rgbString(),
+                        borderColor: "#FF2853",
+						pointRadius: 0,
+						pointHoverRadius: 5,
+                        fill: false,
+                        data: [
+<?php
+						foreach ( $othersArray as $other ){
+							
+							// prepare for chart diagram
+							echo "{
+							 x: parseDB('".$other['measured']."'),
+							 y: ".$other['temperature']."
+							 },";
+						}
+?>
+						
+							],
+                    }, {
+                        label: "Luftfeuchtigkeit (%) aktuell",
+						yAxisID: "y-axis-dht",
+                        backgroundColor: color("#2D69FF").alpha(0.5).rgbString(),
+                        borderColor: "#2D69FF",
+						pointRadius: 0,
+						pointHoverRadius: 5,
+                        fill: false,
+                        data: [
+<?php
+						foreach ( $othersArray as $other ){
+							
+							// prepare for chart diagram
+							echo "{
+							 x: parseDB('".$other['measured']."'),
+							 y: ".$other['humidity']."
+							 },";
+						}
+?>
+						
+						
+							],
+                    }, {
+                        label: "CO2 (ppm) Vergleich",
+						yAxisID: "y-axis-ppm",
                         backgroundColor: color("#E5FFCC").alpha(0.5).rgbString(),
                         borderColor: "#E5FFCC",
 						pointRadius: 0,
@@ -261,51 +314,52 @@ catch(MongoException $e)
                         data: [
 <?php
 
-try
-{
-        $measurements = $iotairclean->measurements;
-		// Read all measurements of the current day 
-        $ms = $measurements
-			->find(array('station' => $stationname, 'measured' 
-					=> array('$gt' => $compareFrom, '$lt' => $compareTo)
-				))
-			->sort(array('measured'=>1))
-		;
-		
-		// prepare range calculation for pie chart
-		$rangeCompare = array(400 => 0, 800 => 0, 1200 => 0, 1600 => 0);
+						try
+						{
+							# COMPARING MEASUREMENTS
+							$measurements = $iotairclean->measurements;
+							// Read all measurements of the current day 
+							$ms = $measurements
+								->find(array('station' => $stationname, 'measured' 
+										=> array('$gt' => $compareFrom, '$lt' => $compareTo)
+									))
+								->sort(array('measured'=>1))
+							;
+							
+							// prepare range calculation for pie chart
+							$rangeCompare = array(400 => 0, 800 => 0, 1200 => 0, 1600 => 0);
 
-        if ($ms->count() <1)
-        {
-			// currently nothing to do
-        }
-        else
-        {
-			foreach ( $ms as $id => $value )
-			{
-				$measureTime 	= $value["measured"];
-				$ppm 			= $value["co2"];
-				
-				$ppmCalc = floor($ppm / 400) * 400;
-				$rangeCompare[$ppmCalc] = $rangeCompare[$ppmCalc] + 1;
-				
-				// prepare for chart diagram
-				echo "{
-				 x: compareDB('$measureTime'),
-				 y: $ppm
-				 },";
-			}
-        }
-        $mongo->close();
-}
-catch(MongoConnectionException $e)
-{
-	die('Error in connection to MongoDB' . $e->getMessage());
-}
-catch(MongoException $e)
-{
-        die('Error:' . $e->getMessage());
-}
+							if ($ms->count() <1)
+							{
+								// currently nothing to do
+							}
+							else
+							{
+								foreach ( $ms as $id => $value )
+								{
+									$measureTime 	= $value["measured"];
+									$ppm 			= $value["co2"];
+									
+									$ppmCalc = floor($ppm / 400) * 400;
+									$rangeCompare[$ppmCalc] = $rangeCompare[$ppmCalc] + 1;
+									
+									// prepare for chart diagram
+									echo "{
+									 x: compareDB('$measureTime'),
+									 y: $ppm
+									 },";
+								}
+							}
+							$mongo->close();
+						}
+						catch(MongoConnectionException $e)
+						{
+							die('Error in connection to MongoDB' . $e->getMessage());
+						}
+						catch(MongoException $e)
+						{
+								die('Error:' . $e->getMessage());
+						}
 ?>
 							],
                     }]
@@ -315,20 +369,30 @@ catch(MongoException $e)
                 title:{
                     text: "IoT AirClean Station"
                 },
+				legend: {
+					position: 'top'
+				},
                 scales: {
                     xAxes: [{
                         type: "time",
                         time: {
                             format: timeFormat,
-                            // round: 'day'
-                            tooltipFormat: 'll HH:mm'
-                        },
+                            round: true,
+							unit: 'hour',
+                            tooltipFormat: 'k:mm DD.MM.YYYY', 
+							displayFormats: {
+								hour: 'k'
+							}
+                        }, 
+						
                         scaleLabel: {
                             display: true,
                             labelString: 'Messzeitpunkt'
                         }
                     }, ],
                     yAxes: [{
+						id: 'y-axis-ppm',
+						position: "left",
                         scaleLabel: {
                             display: true,
                             labelString: 'co2 ppm',
@@ -336,6 +400,18 @@ catch(MongoException $e)
 						ticks: {
 							suggestedMin: 0,    // minimum will be 0, unless there is a lower value.
 							suggestedMax: 2000,	// maximum will be 2000 => normally should not reach this level
+							beginAtZero: true   // minimum value will be 0.
+						}
+                    },{
+						id: 'y-axis-dht',
+						position: "right",
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'Temp. / Feucht.',
+                        },
+						ticks: {
+							suggestedMin: 0,    // minimum will be 0, unless there is a lower value.
+							suggestedMax: 100,	// maximum will be 2000 => normally should not reach this level
 							beginAtZero: true   // minimum value will be 0.
 						}
                     }]
@@ -538,6 +614,20 @@ catch(MongoException $e)
 		
 		</script>
 		
+	
+	<div class="row">
+		<div class="col-md-12">
+		<?php
+		
+			// TESTING AREA
+		
+		
+		?>
+		
+		
+		</div>
+	
+	</div>
 	
 	<div class="row">
 		<div class="col-md-2"></div>
