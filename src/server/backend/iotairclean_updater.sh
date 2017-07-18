@@ -48,9 +48,9 @@ sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/se
 # copy updated files
 sudo cp -rf /usr/share/nginx/html_update/* /usr/share/nginx/html
 # set files owner to nginx user
-chown -R nginx:nginx /usr/share/nginx/html
+sudo chown -R root:root /usr/share/nginx/html
 # remove all downloaded files
-rm -rf /usr/share/nginx/html_update/*
+sudo rm -rf /usr/share/nginx/html_update/*
 
 echo "IoT AirClean UI updated!"
 
