@@ -1,39 +1,55 @@
 <?php
 
-// to get all data of current day
-$timestamp = strtotime('today midnight');
+	require_once("helpers/chartjs.php");
+	require_once("helpers/database.php");
 
-// compare yesterday for Standard
-$compareDate = "yesterday";
-if(isset($_GET["compareDate"]))
-	$compareDate = $_GET["compareDate"];
+// primeDate today for Standard
+setAirCleanDate($datePrimary, $datePrimaryForm, "datePrimary", "today");
+setAirCleanDate($dateSecondary, $dateSecondaryForm, "dateSecondary", "yesterday");
 
-// TODO SELECT DATE
-$compareTo = strtotime("$compareDate midnight");
-$compareToOrig = $compareTo;
+// currently only compare 24h
+function setAirCleanDate(&$varName, &$varFormName, $paramName, $paramDefault = "today"){
 
-// for later compare
-$diffInSeconds = $timestamp - $compareTo;
+	// set default, and check for param of current form
+	$date =  $paramDefault;
+	if(isset($_GET["$paramName"]))
+		$date = $_GET["$paramName"];
+	
+	$varName = strtotime("$date midnight"); // always start from midnight
+	
+	// TODO check for other countries
+	// check daylight saving time, currently only supports austria and UTC+1
+	if(date('I') == 1)
+		$varName = $varName - (3600 * 1);
+	else
+		$varName = $varName - (3600 * 2);
+	
+	// defines variable for form output, must be 24h laters
+	$varFormName = $varName + (3600 * 24);
+}
 
-// check daylight saving time
-if(date('I') == 1)
-	$timestamp = $timestamp - (3600 * 1);
+// defines current measuring => Default: today
+$measuredFrom = date("Y-m-d H:i:s", $datePrimary);
+$measuredTo = date("Y-m-d H:i:s", $datePrimary + (3600 * 24));
+
+$diffInSecondsPrimary = strtotime($measuredTo) - strtotime($measuredFrom);
+
+// compare now with secondary Date => Default: Yesterday 
+$compareFrom 	= date("Y-m-d H:i:s", $dateSecondary);
+$compareTo	 	= date("Y-m-d H:i:s", $dateSecondary + (3600 * 24));
+// for later graph options 
+$diffInSeconds = $diffInSecondsPrimary;
+// and also precalculated the diff in days
+if($measuredFrom > $compareTo)
+	$diffInDays = (strtotime($measuredFrom) - strtotime($compareTo)) / 3600 / 24;
 else
-	$timestamp = $timestamp - (3600 * 2);
+	$diffInDays = -(strtotime($compareFrom) - strtotime($measuredFrom)) / 3600 / 24 - 1	;
 
-$measuredSince = date("Y-m-d H:i:s", $timestamp);
-$measuredTo = date("Y-m-d H:i:s", $timestamp + (3600 * 24));
-
-// compare now with yesterday 
-$compareFrom = $compareTo - (3600 * 24);
-$compareFrom 	= date("Y-m-d H:i:s", $compareFrom);
-$compareTo	 	= date("Y-m-d H:i:s", $compareTo);
 
 // some configs for easier customizing
 $stationname = "wohnzimmer@home";
 if(isset($_GET["stationname"]))
 	$stationname = $_GET["stationname"];
-
 
 // get mongo db connection 
 $mongo = new Mongo(/*"localahost:27101"*/);
@@ -64,19 +80,31 @@ $iotairclean = $mongo->iotairclean;
   <body>
 	
 	
+	<div class="row iot-graph">
+		<div class="col-md-1 col-sm-0">
+		</div>
+		<div class="col-md-10 col-sm-12">
+			<canvas id="canvas"></canvas>
+		</div>
+		<div class="col-md-1 col-sm-0">
+		</div>
+	</div>
+	
+	<!-- it's important, but first screen should be the graph -->
 	<form id="compareForm">
 		<div class="row">
-			<div class="col-md-6 col-sm-4">
+			<div class="col-md-1 col-sm-0">
+			</div>
+			<div class="col-md-2 col-sm-4">
 				<img src="iotairclean_logo_small.png" />	
 			</div>
-			<div class="col-md-6 col-sm-8">
+			<div class="col-md-8 col-sm-8">
 				
 					<select name="stationname" class="form-control">
 					<?php
 
 						// get all available stations
 						$measurements = $iotairclean->measurements;
-
 
 						$keys = array("station" => 1);
 						$initial = array("count" => 0);
@@ -96,17 +124,19 @@ $iotairclean = $mongo->iotairclean;
 						}
 					?>
 					</select>
-					  <input type="date" name="compareDate" id="compareDate" value="<?php echo date('Y-m-d', $compareToOrig); ?>" >
-					  <input class="btn btn-default" type="submit" value="vergleichen">
+					
+						<label for="datePrimary">dieses Datum </label>
+						<input type="date" name="datePrimary" id="datePrimary" value="<?php echo date('Y-m-d', $datePrimaryForm); ?>" >
+						<label for="dateSecondary"> mit jenem Datum </label>
+						<input type="date" name="dateSecondary" id="dateSecondary" value="<?php echo date('Y-m-d', $dateSecondaryForm); ?>" >
+						<input class="btn btn-default" type="submit" value="vergleichen"><br/>
 					  <a class="btn btn-default" href="<?php echo basename($_SERVER["SCRIPT_FILENAME"], '') ;?>">zurücksetzen</a>
+			</div>
+			<div class="col-md-1 col-sm-0">
 			</div>
 		</div>
 	</form>	
-	<div class="row">
-		<div class="col-md-12">
-			<canvas id="canvas"></canvas>
-		</div>
-	</div>
+	
 	<div class="row">
 		<div class="col-md-2"></div>
 		<div class="col-md-2"></div>
@@ -122,162 +152,26 @@ $iotairclean = $mongo->iotairclean;
 		<div class="col-md-2"></div>
 	</div>
 	
-
 <?php
-	try
-	{
-		// we will need this both arrays later, to reduce server loading time
-		$othersArray = array();
-		
-		# CURRENT MEASUREMENTS
-		$measurements = $iotairclean->measurements;
-		
-		// Read all measurements of the current day 
-		$ms = $measurements
-			->find(array('station' => $stationname, 'measured' => array('$gt' => $measuredSince) ))
-			->sort(array('measured'=>1))
-		;
-		
-		// prepare range calculation for pie chart
-		$range = array(400 => 0, 800 => 0, 1200 => 0, 1600 => 0);
+	// now load necessary data from database for later acccess
+	
+	loadData( $othersArray, $range,	
+		 array('station' => $stationname, 'measured' => array('$gt' => $measuredFrom,'$lt' => $measuredTo) ),
+		 array('measured'=>1)
+		 );
+		 
+	loadData( $compareArray, $rangeCompare,	
+		 array('station' => $stationname, 'measured' => array('$gt' => $compareFrom,'$lt' => $compareTo) ),
+		 array('measured'=>1)
+		 );
 
-		if ($ms->count() <1)
-		{
-			// currently nothing to do
-		}
-		else
-		{
-			foreach ( $ms as $id => $value )
-			{
-				$measureTime 	= $value["measured"];
-				$ppm 			= $value["co2"];		// part per millions	(CO2 Gehalt der Luft)
-				$temperature	= $value["temperature"];// temperature 			(Temperatur)
-				$humidity		= $value["humidity"];   // humidity				(Luftfeuchtigkeit)
-				
-				$ppmCalc = floor($ppm / 400) * 400;
-				$range[$ppmCalc] = $range[$ppmCalc] + 1;
-								 
-				 // temp store data for other graphics
-				 $othersArray[] = array( 'measured' => $measureTime, 'temperature' => $temperature, 'humidity' => $humidity, "ppm" => $ppm);
-			}
-		}
-		$mongo->close();
-	}
-	catch(MongoConnectionException $e)
-	{
-		die('Error in connection to MongoDB' . $e->getMessage());
-	}
-	catch(MongoException $e)
-	{
-		die('Error:' . $e->getMessage());
-	}
-	
 ?>
-	
-	
+		
 	<div class="row">
 		<div class="col-md-12">
 		<?php
-			// TESTING AREA STARTS
-			
-			$nobodyMeasurementsArray = array();
-			// start of nobody
-			$nobodyMeasurementsArray[] = array( "measured" => $measuredSince, "ppm" => 0);
-		
-			// scaleable comparing values 
-			$nrOfMeasuresPerMinute = 2;
-			$diffPPM = 5;		   // max difference value
-			$possibleFailures = 5; // nr of failures
-			$nobodyHereLimit = 90; // Minutes
-		
-			$nobodyHereCounter = 0;
-			$nobodyFailureCounter = 0;
-			$nobodyStart = "";
-			$nobodyUp = 0;
-			$nobodyDown = 0;
-			$nobodyUpCounter = 0;  // counts how many following ups happens
-			$nobodyUpCounterLimit = 10;  
-			
-			$latestPPM = array();
-			
-			foreach($othersArray as $other){
-				// set first measurement
-				if($nobodyStart == ""){
-					$nobodyStart = $other["measured"];
-				}
-				
-				$changePPM = $lastPPM - $other["ppm"];
-				$latestPPM[] = $other["ppm"];
-								
-								
-				// check some more measurement at once to get an overview about up or down
-				$nobodyHereCounter++;
-				$latestDown = 0;
-				foreach($latestPPM as $ppm){
-					if($other["ppm"] <= $ppm){
-						$latestDown++;
-					}
-				}
-				
-				// check some more measurement at once to get an overview about up or down
-				if(count($latestPPM) > 20){
-					array_shift($latestPPM);
-					
-					if($latestDown < 2){
-						$nobodyFailureCounter = $possibleFailures;
-						// echo "<br/>DETECT " . $other["ppm"];
-					}
-				}
-				
-				
-				// now start comparing
-				if($changePPM <= $diffPPM && $changePPM >= -$diffPPM && $nobodyUpCounter < $nobodyUpCounterLimit){
-					$nobodyFailureCounter = 0;
-					$nobodyMeasurementsArrayTemp[] = array( "measured" => $other["measured"], "ppm" => $other["ppm"]);
-					
-					if($changePPM > 0){
-						$nobodyDown++;
-						$nobodyUpCounter = 0;
-					}
-					
-					if($changePPM < 0){
-						$nobodyUp++;
-						$nobodyUpCounter++;
-					}
-					
-				} else if($nobodyFailureCounter < $possibleFailures && $nobodyUpCounter < $nobodyUpCounterLimit){
-					// we accept some failures
-					$nobodyFailureCounter++;						
-				}else {
-					if($nobodyHereCounter > $nobodyHereLimit * $nrOfMeasuresPerMinute
-						&& $nobodyUp / $nobodyDown < 2 // otherwise it must be someone here
-					){
-						echo "<br/>Nobody was here from " . $nobodyStart . " until " . $other["measured"] . " for $nobodyHereCounter with $nobodyFailureCounter (up $nobodyUp, down $nobodyDown)";
-						
-						// visualize nobody was here
-						foreach($nobodyMeasurementsArrayTemp as $id => $value){
-							$nobodyMeasurementsArray[] = $value;
-							unset($nobodyMeasurementsArrayTemp[$id]);
-						}
-					}
-					$nobodyMeasurementsArray[] = array( "measured" => $other["measured"], "ppm" => 0);
-					$nobodyHereCounter = 0;
-					$nobodyUpCounter = 0;
-					$nobodyUp = 0;
-					$nobodyDown = 0;
-					$nobodyStart = $other["measured"];
-					$nobodyMeasurementsArrayTemp = array();
-				}
-				
-				
-				$lastPPM = $other["ppm"];
-				
-			}
-			
-			// end of nobody
-			$nobodyMeasurementsArray[] = array( "measured" => $measuredTo, "ppm" => 0);
-		
-			// TESTING AREA ENDS
+			// load helpers after loading database methods and inquiry database
+			require_once("helpers/iotairclean.php");
 		?>
 		</div>
 	</div>
@@ -294,206 +188,19 @@ $iotairclean = $mongo->iotairclean;
         var config = {
             type: 'line',
             data: {
-                labels: [ // Date Objects
-					parseDB(<?php echo "'$measuredSince'"; ?>),
-                    newDate()
+                labels: [ 
                 ],
                 datasets: [
-                    {
-                        label: "Frischluft",
-                        backgroundColor: color("#008000").alpha(0.5).rgbString(),
-                        borderColor: "#008000",
-						pointRadius: 0,
-                        fill: false,
-                        data: [{
-                            x: parseDB(<?php echo "'$measuredSince'"; ?>),
-                            y: 400
-                        },{
-                            x: parseDB(<?php echo "'$measuredTo'"; ?>),
-                            y: 400
-                        }],
-                    }, {
-                        label: "in Ordnung",
-                        backgroundColor: color("#FFFF00").alpha(0.5).rgbString(),
-                        borderColor: "#FFFF00",
-						pointRadius: 0,
-                        fill: false,
-                        data: [{
-                            x: parseDB(<?php echo "'$measuredSince'"; ?>),
-                            y: 800
-                        },{
-                            x: parseDB(<?php echo "'$measuredTo'"; ?>),
-                            y: 800
-                        }],
-                    }, {
-                        label: "schlecht",
-                        backgroundColor: color("#FFA500").alpha(0.5).rgbString(),
-                        borderColor: "#FFA500",
-						pointRadius: 0,
-                        fill: false,
-                        data: [{
-                            x: parseDB(<?php echo "'$measuredSince'"; ?>),
-                            y: 1200
-                        },{
-                            x: parseDB(<?php echo "'$measuredTo'"; ?>),
-                            y: 1200
-                        }],
-                    }, {
-                        label: "Handlungsbedarf",
-                        backgroundColor: color("#FF0000").alpha(0.5).rgbString(),
-                        borderColor: "#FF0000",
-						pointRadius: 0,
-                        fill: false,
-                        data: [{
-                            x: parseDB(<?php echo "'$measuredSince'"; ?>),
-                            y: 1600
-                        },{
-                            x: parseDB(<?php echo "'$measuredTo'"; ?>),
-                            y: 1600
-                        }],
-                    }, {
-                        label: "CO2 (ppm) aktuell",
-						yAxisID: "y-axis-ppm",
-                        backgroundColor: color("#799E1A").alpha(0.5).rgbString(),
-                        borderColor: "#799E1A",
-						pointRadius: 0,
-						pointHoverRadius: 5,
-                        fill: false,
-                        data: [
-<?php
-						foreach ( $othersArray as $other ){
-
-							// prepare for chart diagram
-							echo "{
-							 x: parseDB('".$other['measured']."'),
-							 y: ".$other['ppm']."
-							 },";
-						}
-?>
-							],
-                    }, {
-                        label: "abwesend",
-						yAxisID: "y-axis-ppm",
-                        backgroundColor: color("#C0C0C0").alpha(0.1).rgbString(),
-                        borderColor: "#C0C0C0",
-						pointRadius: 0,
-						pointHoverRadius: 5,
-                        fill: true,
-                        data: [
-<?php
-						foreach ( $nobodyMeasurementsArray as $other ){
-
-							// prepare for chart diagram
-							echo "{
-							 x: parseDB('".$other['measured']."'),
-							 y: ".$other['ppm']."
-							 },";
-						}
-?>
-							],
-                    }, {
-                        label: "Temperatur (°C) aktuell",
-						yAxisID: "y-axis-dht",
-                        backgroundColor: color("#FF2853").alpha(0.5).rgbString(),
-                        borderColor: "#FF2853",
-						pointRadius: 0,
-						pointHoverRadius: 5,
-                        fill: false,
-                        data: [
-<?php
-						foreach ( $othersArray as $other ){
-							
-							// prepare for chart diagram
-							echo "{
-							 x: parseDB('".$other['measured']."'),
-							 y: ".$other['temperature']."
-							 },";
-						}
-?>
-						
-							],
-                    }, {
-                        label: "Luftfeuchtigkeit (%) aktuell",
-						yAxisID: "y-axis-dht",
-                        backgroundColor: color("#2D69FF").alpha(0.5).rgbString(),
-                        borderColor: "#2D69FF",
-						pointRadius: 0,
-						pointHoverRadius: 5,
-                        fill: false,
-                        data: [
-<?php
-						foreach ( $othersArray as $other ){
-							
-							// prepare for chart diagram
-							echo "{
-							 x: parseDB('".$other['measured']."'),
-							 y: ".$other['humidity']."
-							 },";
-						}
-?>
-						
-						
-							],
-                    }, {
-                        label: "CO2 (ppm) Vergleich",
-						yAxisID: "y-axis-ppm",
-                        backgroundColor: color("#E5FFCC").alpha(0.5).rgbString(),
-                        borderColor: "#E5FFCC",
-						pointRadius: 0,
-						pointHoverRadius: 5,
-                        fill: false,
-                        data: [
-<?php
-
-						try
-						{
-							# COMPARING MEASUREMENTS
-							$measurements = $iotairclean->measurements;
-							// Read all measurements of the current day 
-							$ms = $measurements
-								->find(array('station' => $stationname, 'measured' 
-										=> array('$gt' => $compareFrom, '$lt' => $compareTo)
-									))
-								->sort(array('measured'=>1))
-							;
-							
-							// prepare range calculation for pie chart
-							$rangeCompare = array(400 => 0, 800 => 0, 1200 => 0, 1600 => 0);
-
-							if ($ms->count() <1)
-							{
-								// currently nothing to do
-							}
-							else
-							{
-								foreach ( $ms as $id => $value )
-								{
-									$measureTime 	= $value["measured"];
-									$ppm 			= $value["co2"];
-									
-									$ppmCalc = floor($ppm / 400) * 400;
-									$rangeCompare[$ppmCalc] = $rangeCompare[$ppmCalc] + 1;
-									
-									// prepare for chart diagram
-									echo "{
-									 x: compareDB('$measureTime'),
-									 y: $ppm
-									 },";
-								}
-							}
-							$mongo->close();
-						}
-						catch(MongoConnectionException $e)
-						{
-							die('Error in connection to MongoDB' . $e->getMessage());
-						}
-						catch(MongoException $e)
-						{
-								die('Error:' . $e->getMessage());
-						}
-?>
-							],
-                    }]
+					<?php createDataset($measuredFrom, $measuredTo, "Frischluft", "#008000", 400);?>, 
+					<?php createDataset($measuredFrom, $measuredTo, "in Ordnung", "#FFFF00", 800);?>, 
+					<?php createDataset($measuredFrom, $measuredTo, "schlecht", "#FFA500", 1200);?>, 
+					<?php createDataset($measuredFrom, $measuredTo, "Handlungsbedarf", "#FF0000", 1600);?>, 
+					<?php createDataset($measuredFrom, $measuredTo, "CO2 (ppm)", "#799E1A", $othersArray, "y-axis-ppm", "ppm");?>, 
+					<?php createDataset($measuredFrom, $measuredTo, "Temperatur (°C)", "#FF2853", $othersArray, "y-axis-dht", "temperature");?>, 
+					<?php createDataset($measuredFrom, $measuredTo, "Luftfeuchtigkeit (%)", "#2D69FF", $othersArray, "y-axis-dht", "humidity");?>, 
+					<?php createDataset($measuredFrom, $measuredTo, "abwesend", "#C0C0C0", $nobodyMeasurementsArray, "y-axis-ppm", "ppm", "parseDB", "fill");?>, 
+					<?php createDataset($measuredFrom, $measuredTo, "CO2 (ppm) Vergleich", "#E5FFCC", $compareArray, "y-axis-ppm", "ppm", "compareDB");?>
+                    ]
             }
             ,
             options: {
@@ -550,18 +257,24 @@ $iotairclean = $mongo->iotairclean;
             }
         };
 
-		function parseDB(value){
+		/* parse DB date value for correct timezone */
+		function parseTimezoneOffset(value){
 			var offset = 2;
 			if(moment().isDST() == false)
 				offset = 1;
 			
 			var duration = moment.duration({'hours' : offset});
-			return moment(value).add(duration);
+			return moment(value).add(duration)
 		}
+		/* parse primary date value, there's no need for other modification currently */
+		function parseDB(value){
+			return parseTimezoneOffset(value);
+		}
+		/* parse secondary date value, also have to parse correct timezone */
 		function compareDB(value){
 			var compareArea = moment.duration({'seconds' : <?php echo $diffInSeconds; ?>});
-			var compareDay  = moment.duration ({'hours' : 24});
-			return moment(value).add(compareArea).add(compareDay);
+			var compareDay  = moment.duration ({'hours' : <?php echo $diffInDays * 24; ?>});
+			return parseTimezoneOffset(moment(value).add(compareArea).add(compareDay));
 		}
 
         function newDate(days) {
@@ -578,31 +291,17 @@ $iotairclean = $mongo->iotairclean;
 		
 
         function addNewMeasurementPPM(ppm){
+			 /* TO TEST => not needed anymore
 			 // goood
-			 config.data.datasets[0].data.push({
-			 x: newDate(),
-			 y: 400,
-			 });
+			 config.data.datasets[0].data.push({ x: newDate(), y: 400, });
 			 // ok
-			 config.data.datasets[1].data.push({
-			 x: newDate(),
-			 y: 800,
-			 });
+			 config.data.datasets[1].data.push({ x: newDate(), y: 800, });
 			 // bad
-			 config.data.datasets[2].data.push({
-			 x: newDate(),
-			 y: 1200,
-			 });
+			 config.data.datasets[2].data.push({ x: newDate(), y: 1200 });
 			 // nooo
-			 config.data.datasets[3].data.push({
-			 x: newDate(),
-			 y: 1600,
-			 });
+			 config.data.datasets[3].data.push({ x: newDate(), y: 1600 });
 			 // current measurement ppm
-			 config.data.datasets[4].data.push({
-			 x: newDate(),
-			 y: ppm,
-			 });
+			 config.data.datasets[4].data.push({ x: newDate(), y: ppm  });*/
 
             window.myLine.update();
         }
@@ -617,46 +316,54 @@ $iotairclean = $mongo->iotairclean;
 			
             window.myLine.update();
 
-            // Create a client instance: Broker, Port, Websocket Path, Client ID
-            var d = new Date();
-            var n = d.getTime();
-            client = new Paho.MQTT.Client("192.168.100.191", Number(1884), "clientId" + n);
+<?php
+			// we will create a check parameter, so this will proof if primary == check, and so we now that only current date is activate or not
+			setAirCleanDate($checkPrimary, $checkPrimaryForm, "checkPrimary", "today");
+			// only activate live support for today 
+			if($checkPrimary == $datePrimary){
+?>
+				// Create a client instance: Broker, Port, Websocket Path, Client ID
+				var d = new Date();
+				var n = d.getTime();
+				client = new Paho.MQTT.Client("192.168.100.191", Number(1884), "clientId" + n);
 
-            // set callback handlers
-            client.onConnectionLost = function (responseObject) {
-                console.log("Connection Lost: " + responseObject.errorMessage);
-                console.log("try to reconnect");
-                onConnect();
-            }
+				// set callback handlers
+				client.onConnectionLost = function (responseObject) {
+					console.log("Connection Lost: " + responseObject.errorMessage);
+					console.log("try to reconnect");
+					onConnect();
+				}
 
-			// will handle current measurement from arduino (real-time)
-            client.onMessageArrived = function (message) {
-                //              console.log("Message Arrived: "+message.payloadString);
-                var obj = message.payloadString;
-                try {
-                    obj = jQuery.parseJSON(message.payloadString);
+				// will handle current measurement from arduino (real-time)
+				client.onMessageArrived = function (message) {
+					//              console.log("Message Arrived: "+message.payloadString);
+					var obj = message.payloadString;
+					try {
+						obj = jQuery.parseJSON(message.payloadString);
 
-                    addNewMeasurementPPM(obj.co2);
-                } catch (e) {
-                    // not json
-                }
-                console.log(obj);
-            }
+						addNewMeasurementPPM(obj.co2);
+					} catch (e) {
+						// not json
+					}
+					console.log(obj);
+				}
 
-            // Called when the connection is made
-            function onConnect() {
-                console.log("Connected!");
-                client.subscribe("/iotairclean");
-                message = new Paho.MQTT.Message("Hello");
-                message.destinationName = "/iotairclean";
-                client.send(message);
-            }
-
-            // Connect the client, providing an onConnect callback
-            client.connect({
-                onSuccess: onConnect
-                //,mqttVersion: 3
-            });
+				// Called when the connection is made
+				function onConnect() {
+					console.log("Connected!");
+					client.subscribe("/iotairclean");
+					message = new Paho.MQTT.Message("Hello");
+					message.destinationName = "/iotairclean";
+					client.send(message);
+				}
+				// Connect the client, providing an onConnect callback
+				client.connect({
+					onSuccess: onConnect
+					//,mqttVersion: 3
+				});
+<?php
+			}
+?>
 
 			// second Pie Chart for overview
 			var ctxPie = document.getElementById("canvasPie").getContext("2d");
@@ -775,9 +482,7 @@ $iotairclean = $mongo->iotairclean;
 							$tdClass = "class='warning'";
 						} else  {
 							$tdClass = "class='danger'";
-						}
-
-						
+						}						
 
 						?>
 					<td <?php echo $tdClass; ?>><?php echo $range[400];?></td>

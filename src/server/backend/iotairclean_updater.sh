@@ -15,6 +15,7 @@ echo "IoT AirClean Background Tasks updated!";
 mkdir /usr/share/nginx/html_update/css
 mkdir /usr/share/nginx/html_update/fonts
 mkdir /usr/share/nginx/html_update/js
+mkdir /usr/share/nginx/html_update/helper
 # basic files
 cd /usr/share/nginx/html_update/
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/iotairclean_station.php
@@ -44,6 +45,10 @@ sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/se
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/js/moment.min.js
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/js/mqttws31.min.js
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/js/npm.js
+cd /usr/share/nginx/html_update/helper
+sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/helper/chartjs.php
+sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/helper/database.php
+sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/helper/iotairclean.php
 
 # copy updated files
 sudo cp -rf /usr/share/nginx/html_update/* /usr/share/nginx/html
