@@ -2,7 +2,8 @@
 
 	require_once("helpers/chartjs.php");
 	require_once("helpers/database.php");
-
+	require_once("helpers/iotairclean.php");
+	
 // primeDate today for Standard
 setAirCleanDate($datePrimary, $datePrimaryForm, "datePrimary", "today");
 setAirCleanDate($dateSecondary, $dateSecondaryForm, "dateSecondary", "yesterday");
@@ -83,7 +84,7 @@ $iotairclean = $mongo->iotairclean;
 	<div class="row iot-graph">
 		<div class="col-md-1 col-sm-0">
 		</div>
-		<div class="col-md-10 col-sm-12">
+		<div class="col-md-10 col-sm-12 classWithPad">
 			<canvas id="canvas"></canvas>
 		</div>
 		<div class="col-md-1 col-sm-0">
@@ -98,39 +99,38 @@ $iotairclean = $mongo->iotairclean;
 			<div class="col-md-2 col-sm-4">
 				<img src="iotairclean_logo_small.png" />	
 			</div>
-			<div class="col-md-8 col-sm-8">
-				
-					<select name="stationname" class="form-control">
-					<?php
+			<div class="col-md-8 col-sm-8 classWithPad">				
+				<select name="stationname" class="form-control">
+				<?php
 
-						// get all available stations
-						$measurements = $iotairclean->measurements;
+					// get all available stations
+					$measurements = $iotairclean->measurements;
 
-						$keys = array("station" => 1);
-						$initial = array("count" => 0);
-						$reduce = "function (obj, prev) { prev.count++; }";
-						$stations = $measurements->group($keys, $initial, $reduce);
+					$keys = array("station" => 1);
+					$initial = array("count" => 0);
+					$reduce = "function (obj, prev) { prev.count++; }";
+					$stations = $measurements->group($keys, $initial, $reduce);
 
-						foreach ( $stations as $id => $values )
-						{
-							foreach($values as $value){
-								$selected = "";
-								$station = $value["station"];
-								$counter = $value["count"];
-								if($stationname == $station)
-									$selected = "selected";
-								echo "<option value='$station' $selected>$station ($counter Messungen)</option>";
-							}
+					foreach ( $stations as $id => $values )
+					{
+						foreach($values as $value){
+							$selected = "";
+							$station = $value["station"];
+							$counter = $value["count"];
+							if($stationname == $station)
+								$selected = "selected";
+							echo "<option value='$station' $selected>$station ($counter Messungen)</option>";
 						}
-					?>
-					</select>
-					
-						<label for="datePrimary">dieses Datum </label>
-						<input type="date" name="datePrimary" id="datePrimary" value="<?php echo date('Y-m-d', $datePrimaryForm); ?>" >
-						<label for="dateSecondary"> mit jenem Datum </label>
-						<input type="date" name="dateSecondary" id="dateSecondary" value="<?php echo date('Y-m-d', $dateSecondaryForm); ?>" >
-						<input class="btn btn-default" type="submit" value="vergleichen"><br/>
-					  <a class="btn btn-default" href="<?php echo basename($_SERVER["SCRIPT_FILENAME"], '') ;?>">zurücksetzen</a>
+					}
+				?>
+				</select>
+				
+					<label for="datePrimary">dieses Datum </label>
+					<input type="date" name="datePrimary" id="datePrimary" value="<?php echo date('Y-m-d', $datePrimaryForm); ?>" >
+					<label for="dateSecondary"> mit jenem Datum </label>
+					<input type="date" name="dateSecondary" id="dateSecondary" value="<?php echo date('Y-m-d', $dateSecondaryForm); ?>" >
+					<input class="btn btn-default" type="submit" value="vergleichen"><br/>
+				  <a class="btn btn-default" href="<?php echo basename($_SERVER["SCRIPT_FILENAME"], '') ;?>">zurücksetzen</a>
 			</div>
 			<div class="col-md-1 col-sm-0">
 			</div>
@@ -170,8 +170,8 @@ $iotairclean = $mongo->iotairclean;
 	<div class="row">
 		<div class="col-md-12">
 		<?php
-			// load helpers after loading database methods and inquiry database
-			require_once("helpers/iotairclean.php");
+			detectNobody($nobodyMeasurementsArray, $othersArray);
+			detectAiring($airingMeasurementsArray, $othersArray);
 		?>
 		</div>
 	</div>
@@ -198,7 +198,8 @@ $iotairclean = $mongo->iotairclean;
 					<?php createDataset($measuredFrom, $measuredTo, "CO2 (ppm)", "#799E1A", $othersArray, "y-axis-ppm", "ppm");?>, 
 					<?php createDataset($measuredFrom, $measuredTo, "Temperatur (°C)", "#FF2853", $othersArray, "y-axis-dht", "temperature");?>, 
 					<?php createDataset($measuredFrom, $measuredTo, "Luftfeuchtigkeit (%)", "#2D69FF", $othersArray, "y-axis-dht", "humidity");?>, 
-					<?php createDataset($measuredFrom, $measuredTo, "abwesend", "#C0C0C0", $nobodyMeasurementsArray, "y-axis-ppm", "ppm", "parseDB", "fill");?>, 
+					<?php createDataset($measuredFrom, $measuredTo, "abwesend", "#C0C0C0", $nobodyMeasurementsArray, "y-axis-ppm", "ppm", "parseDB", "fill", 0.2, 0.2);?>, 
+					<?php createDataset($measuredFrom, $measuredTo, "gelüftet", "#799E1A", $airingMeasurementsArray, "y-axis-ppm", "ppm", "parseDB", "fill", 0.2, 0.2);?>, 
 					<?php createDataset($measuredFrom, $measuredTo, "CO2 (ppm) Vergleich", "#E5FFCC", $compareArray, "y-axis-ppm", "ppm", "compareDB");?>
                     ]
             }
@@ -299,9 +300,9 @@ $iotairclean = $mongo->iotairclean;
 			 // bad
 			 config.data.datasets[2].data.push({ x: newDate(), y: 1200 });
 			 // nooo
-			 config.data.datasets[3].data.push({ x: newDate(), y: 1600 });
+			 config.data.datasets[3].data.push({ x: newDate(), y: 1600 });*/
 			 // current measurement ppm
-			 config.data.datasets[4].data.push({ x: newDate(), y: ppm  });*/
+			 config.data.datasets[4].data.push({ x: newDate(), y: ppm  });
 
             window.myLine.update();
         }
@@ -319,6 +320,7 @@ $iotairclean = $mongo->iotairclean;
 <?php
 			// we will create a check parameter, so this will proof if primary == check, and so we now that only current date is activate or not
 			setAirCleanDate($checkPrimary, $checkPrimaryForm, "checkPrimary", "today");
+			
 			// only activate live support for today 
 			if($checkPrimary == $datePrimary){
 ?>

@@ -4,7 +4,7 @@
 	/**
 	 * creates dataset entries for chartjs and will dynamically generates needed data points for visualization 
 	 */
-	function createDataset($from, $to, $label = "Frischluft", $colorHex = "#008000", $data = 400, $yAxisID = "y-axis-ppm", $output = "ppm", $compareMethod = "parseDB", $fill = false){
+	function createDataset($from, $to, $label = "Frischluft", $colorHex = "#008000", $data = 400, $yAxisID = "y-axis-ppm", $output = "ppm", $compareMethod = "parseDB", $fill = false, $alphaBorder = 1.0, $alphaBackground = 1.0){
 		
 		if($fill !== false)
 			$fill = "true";
@@ -14,8 +14,8 @@
 		$dataset = "	{
 					label: '$label',
 					yAxisID: '$yAxisID',
-					backgroundColor: color('$colorHex').alpha(0.5).rgbString(),
-					borderColor: '$colorHex',
+					backgroundColor: color('$colorHex').alpha($alphaBackground).rgbString(),
+					borderColor: color('$colorHex').alpha($alphaBorder).rgbString(),
 					pointRadius: 0,
 					fill: $fill,
                ";
