@@ -45,10 +45,10 @@ sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/se
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/js/moment.min.js
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/js/mqttws31.min.js
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/js/npm.js
-cd /usr/share/nginx/html_update/helper
-sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/helper/chartjs.php
-sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/helper/database.php
-sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/helper/iotairclean.php
+cd /usr/share/nginx/html_update/helpers
+sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/helpers/chartjs.php
+sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/helpers/database.php
+sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/helpers/iotairclean.php
 
 # copy updated files
 sudo cp -rf /usr/share/nginx/html_update/* /usr/share/nginx/html
