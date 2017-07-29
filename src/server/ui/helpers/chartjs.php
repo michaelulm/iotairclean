@@ -30,7 +30,65 @@
 					pointHoverRadius: 5,
 					data: [
 			";
+			$lastD = null;
+			$diff = new DateInterval('P0Y0M0DT0H5M0S');
 			foreach ( $data as $d ){
+				
+				// check missing data
+				if(is_null($lastD) == false){
+					
+					$datetime1 = new DateTime($lastD['measured']);
+					$datetime2 = new DateTime($d['measured']);
+					
+					$datetime1->add($diff);
+					
+						
+					// if data leak too big, we show this to the user
+					if($datetime1 < $datetime2){
+						
+						$stepper = 100;
+						if($lastD["$output"] < 100)
+							$stepper = 5;
+						// go down
+						for($i = $lastD["$output"]; $i > 0; $i = $i - $stepper){
+							
+							if($i < 0)
+								$i = 0;
+							
+							$dataset .=  	"{
+											 x: $compareMethod('".$lastD['measured']."'),
+											 y: $i
+											 },";
+						}
+						$dataset .=  	"{
+										 x: $compareMethod('".$lastD['measured']."'),
+										 y: 0
+										 },";
+						
+										 
+								
+						$stepper = 100;
+						if($d["$output"] < 100)
+							$stepper = 5;
+						// go up
+						for($i = 0; $i < $d["$output"]; $i = $i + $stepper){
+							
+							if($i > $d["$output"])
+								$i = $d["$output"];
+							
+							$dataset .=  	"{
+											 x: $compareMethod('".$d['measured']."'),
+											 y: $i
+											 },";
+						}
+					// echo $dataset;			 
+					// echo $datetime1->format('Y-m-d H:i:s');
+					// echo "<br/>".$datetime2->format('Y-m-d H:i:s');
+					// die();
+					}
+				}
+					$lastD = $d;
+				
 
 				// prepare for chart diagram
 				

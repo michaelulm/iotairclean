@@ -91,6 +91,16 @@ $iotairclean = $mongo->iotairclean;
 		</div>
 	</div>
 	
+	<?php
+		// get all available stations
+		$measurements = $iotairclean->measurements;
+
+		$keys = array("station" => 1, "room" => 1);
+		$initial = array("count" => 0);
+		$reduce = "function (obj, prev) { prev.count++; }";
+		$stations = $measurements->group($keys, $initial, $reduce);
+	?>
+	
 	<!-- it's important, but first screen should be the graph -->
 	<form id="compareForm">
 		<div class="row">
@@ -98,19 +108,35 @@ $iotairclean = $mongo->iotairclean;
 			</div>
 			<div class="col-md-2 col-sm-4">
 				<img src="iotairclean_logo_small.png" />	
+				
+				<?php
+					echo "<table style='width:100%;'>";
+					// show on big screen an online state of all sensor stations					
+					foreach ( $stations as $id => $values )
+					{
+						foreach($values as $value){
+							// print_r($value);
+							// die();
+							$station = $value["station"];
+							$room 	 = $value["room"];
+							$class 	 = "btn-secondary";
+							if($stationname == $station)
+								$class = "btn-primary";
+							echo "
+								<tr>
+									<td><a class='btn $class' style='width:100%;' href='?stationname=$station' >$station</a></td>
+									<td><a class='btn btn-warning' style='width:100%;' href='?stationname=$station' name='state-$station' ></a></td>
+								</tr>
+							";
+						}
+					}
+					echo "</table>";
+				?>
 			</div>
 			<div class="col-md-8 col-sm-8 classWithPad">				
 				<select name="stationname" class="form-control">
 				<?php
-
-					// get all available stations
-					$measurements = $iotairclean->measurements;
-
-					$keys = array("station" => 1);
-					$initial = array("count" => 0);
-					$reduce = "function (obj, prev) { prev.count++; }";
-					$stations = $measurements->group($keys, $initial, $reduce);
-
+					// build select
 					foreach ( $stations as $id => $values )
 					{
 						foreach($values as $value){
@@ -307,6 +333,8 @@ $iotairclean = $mongo->iotairclean;
             window.myLine.update();
         }
 
+		// variable for timeout for offline / online visualization
+		var stations = [];
 		
 		// some parts need to be loaded after complete document is rady
         $( document ).ready(function() {
@@ -343,10 +371,28 @@ $iotairclean = $mongo->iotairclean;
 					try {
 						obj = jQuery.parseJSON(message.payloadString);
 
-						addNewMeasurementPPM(obj.co2);
+						if(obj.station == "<?php echo $stationname;?>"){
+							addNewMeasurementPPM(obj.co2);
+							console.log(obj.station + ' added to UI Graph');
+						}
 					} catch (e) {
 						// not json
 					}
+					
+					$( "a[name='state-" + obj.station + "']" ).removeClass('btn-warning');
+					$( "a[name='state-" + obj.station + "']" ).removeClass('btn-danger');
+					$( "a[name='state-" + obj.station + "']" ).addClass('btn-success');
+					
+					clearTimeout(stations[obj.station]);
+					
+					// offline after 1min = 60 seconds
+					stations[obj.station] = setTimeout(
+					  function() 
+					  {
+						$( "a[name='state-" + obj.station + "']" ).removeClass('btn-success');
+						$( "a[name='state-" + obj.station + "']" ).addClass('btn-danger');
+					  }, 60000);
+					  
 					console.log(obj);
 				}
 
