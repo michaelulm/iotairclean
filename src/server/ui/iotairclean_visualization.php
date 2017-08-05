@@ -210,6 +210,7 @@ $iotairclean = $mongo->iotairclean;
 	<script>
 
         var timeFormat = 'DD.MM.YYYY HH:mm:ss';
+        var lastTime;
         var color = Chart.helpers.color;
         var config = {
             type: 'line',
@@ -222,6 +223,7 @@ $iotairclean = $mongo->iotairclean;
 					<?php createDataset($measuredFrom, $measuredTo, "schlecht", "#FFA500", 1200);?>, 
 					<?php createDataset($measuredFrom, $measuredTo, "Handlungsbedarf", "#FF0000", 1600);?>, 
 					<?php createDataset($measuredFrom, $measuredTo, "CO2 (ppm)", "#799E1A", $othersArray, "y-axis-ppm", "ppm");?>, 
+					<?php createDataset($measuredFrom, $measuredTo, "CO2 Trend", "#799E1A", 0, "y-axis-ppm", "ppm", "parseDB", "fill");?>, 
 					<?php createDataset($measuredFrom, $measuredTo, "Temperatur (°C)", "#FF2853", $othersArray, "y-axis-dht", "temperature");?>, 
 					<?php createDataset($measuredFrom, $measuredTo, "Luftfeuchtigkeit (%)", "#2D69FF", $othersArray, "y-axis-dht", "humidity");?>, 
 					<?php createDataset($measuredFrom, $measuredTo, "abwesend", "#C0C0C0", $nobodyMeasurementsArray, "y-axis-ppm", "ppm", "parseDB", "fill", 0.2, 0.2);?>, 
@@ -303,6 +305,12 @@ $iotairclean = $mongo->iotairclean;
 			var compareDay  = moment.duration ({'hours' : <?php echo $diffInDays * 24; ?>});
 			return parseTimezoneOffset(moment(value).add(compareArea).add(compareDay));
 		}
+		/* parse lastTime of last Measurement and add counter of prediction for visualization */
+		function parsePrediction(value, counter){
+			var seconds = 30 * counter;
+			var addPredictionTime = moment.duration({'seconds' : seconds});
+			return moment(value).add(addPredictionTime);
+		}
 
         function newDate(days) {
             return moment().toDate();
@@ -318,19 +326,27 @@ $iotairclean = $mongo->iotairclean;
 		
 
         function addNewMeasurementPPM(ppm){
-			 /* TO TEST => not needed anymore
-			 // goood
-			 config.data.datasets[0].data.push({ x: newDate(), y: 400, });
-			 // ok
-			 config.data.datasets[1].data.push({ x: newDate(), y: 800, });
-			 // bad
-			 config.data.datasets[2].data.push({ x: newDate(), y: 1200 });
-			 // nooo
-			 config.data.datasets[3].data.push({ x: newDate(), y: 1600 });*/
 			 // current measurement ppm
 			 config.data.datasets[4].data.push({ x: newDate(), y: ppm  });
 
-            window.myLine.update();
+            window.myLine.update();			
+        }
+		
+        function addNewPredictionPPM(ppm, counter){
+			
+			if(counter == 1){
+				config.data.datasets[5].data = [];
+			}
+			
+			// it's not needed to show values below of 400, this is quite good enough for an forecast
+			if(ppm < 400){
+				ppm = 400;
+			}
+				
+			 // current measurement ppm
+			 config.data.datasets[5].data.push({ x: parsePrediction(newDate(), counter), y: ppm  });
+
+            window.myLine.update();			
         }
 
 		// variable for timeout for offline / online visualization
@@ -366,14 +382,20 @@ $iotairclean = $mongo->iotairclean;
 
 				// will handle current measurement from arduino (real-time)
 				client.onMessageArrived = function (message) {
+					
 					//              console.log("Message Arrived: "+message.payloadString);
 					var obj = message.payloadString;
 					try {
 						obj = jQuery.parseJSON(message.payloadString);
 
 						if(obj.station == "<?php echo $stationname;?>"){
-							addNewMeasurementPPM(obj.co2);
-							console.log(obj.station + ' added to UI Graph');
+							if(typeof obj.counter !== 'undefined'){
+								addNewPredictionPPM(obj.co2, obj.counter);
+								console.log(obj.station + ' added to UI Graph Prediction');
+							}else{
+								addNewMeasurementPPM(obj.co2);
+								console.log(obj.station + ' added to UI Graph Current');
+							}
 						}
 					} catch (e) {
 						// not json

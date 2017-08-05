@@ -19,12 +19,15 @@
 					pointRadius: 0,
 					fill: $fill,
                ";
-		if(is_array($data) == false){
+		if(is_array($data) == false && $data > 0){
 			$dataset .= "
 					data: [
 					{ x: $compareMethod('$from'), 	y: $data },
 					{ x: $compareMethod('$to'),	y: $data }
 					]";
+		} else if(is_array($data) == false){
+			$dataset .= "
+					data: [ ]";
 		} else {
 			$dataset .= "
 					pointHoverRadius: 5,
