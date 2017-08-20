@@ -4,6 +4,9 @@
 	require_once("helpers/database.php");
 	require_once("helpers/iotairclean.php");
 	
+// prevent mongo timeout error after 30sec loading at hugh data amount
+MongoCursor::$timeout = -1;	
+
 // primeDate today for Standard
 setAirCleanDate($datePrimary, $datePrimaryForm, "datePrimary", "today");
 setAirCleanDate($dateSecondary, $dateSecondaryForm, "dateSecondary", "yesterday");
