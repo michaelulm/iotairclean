@@ -15,7 +15,7 @@ echo "IoT AirClean Background Tasks updated!";
 sudo mkdir /usr/share/nginx/html_update/css
 sudo mkdir /usr/share/nginx/html_update/fonts
 sudo mkdir /usr/share/nginx/html_update/js
-sudo mkdir /usr/share/nginx/html_update/helper
+sudo mkdir /usr/share/nginx/html_update/helpers
 # basic files
 cd /usr/share/nginx/html_update/
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/iotairclean_station.php
