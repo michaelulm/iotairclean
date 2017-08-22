@@ -5,7 +5,7 @@
 	require_once("helpers/iotairclean.php");
 	
 // prevent mongo timeout error after 30sec loading at hugh data amount
-MongoCursor::$timeout = -1;	
+//MongoCursor::$timeout = -1;	
 
 // primeDate today for Standard
 setAirCleanDate($datePrimary, $datePrimaryForm, "datePrimary", "today");
@@ -56,7 +56,7 @@ if(isset($_GET["stationname"]))
 	$stationname = $_GET["stationname"];
 
 // get mongo db connection 
-$mongo = new Mongo(/*"localahost:27101"*/);
+$mongo = new MongoDB\Driver\Manager("mongodb://localhost:27017");
 $iotairclean = $mongo->iotairclean;
 
 ?>
@@ -101,7 +101,10 @@ $iotairclean = $mongo->iotairclean;
 		$keys = array("station" => 1, "room" => 1);
 		$initial = array("count" => 0);
 		$reduce = "function (obj, prev) { prev.count++; }";
-		$stations = $measurements->group($keys, $initial, $reduce);
+		if(is_null($measurements) == false)
+			$stations = $measurements->group($keys, $initial, $reduce);
+		else
+			$stations = array();
 	?>
 	
 	<!-- it's important, but first screen should be the graph -->
@@ -110,7 +113,7 @@ $iotairclean = $mongo->iotairclean;
 			<div class="col-md-1 col-sm-0">
 			</div>
 			<div class="col-md-2 col-sm-4">
-				<img src="iotairclean_logo_small.png" />	
+				<img src="img/iotairclean_logo_small.png" />	
 				
 				<?php
 					echo "<table style='width:100%;'>";
@@ -374,7 +377,7 @@ $iotairclean = $mongo->iotairclean;
 				// Create a client instance: Broker, Port, Websocket Path, Client ID
 				var d = new Date();
 				var n = d.getTime();
-				client = new Paho.MQTT.Client("192.168.100.191", Number(1884), "clientId" + n);
+				client = new Paho.MQTT.Client("<?php echo $_SERVER['SERVER_ADDR']; ?>", Number(1884), "clientId" + n);
 
 				// set callback handlers
 				client.onConnectionLost = function (responseObject) {
@@ -636,7 +639,7 @@ $iotairclean = $mongo->iotairclean;
 		<div class="col-md-2"></div>
 	
 	</div>
-	<div class="row">
+	<div class="row iot-graph">
 		<div class="col-md-4">
 		</div>
 		<div class="col-md-4 text-center classWithPad">

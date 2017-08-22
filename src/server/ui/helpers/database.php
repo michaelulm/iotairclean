@@ -4,13 +4,16 @@
 	function loadData(&$tmpDataArray, &$rangeArray, $find, $sort){
 		
 		// get mongo db connection 
-		$mongo = new Mongo(/*"localahost:27101"*/);
+		$mongo = new MongoDB\Driver\Manager("mongodb://localhost:27017");
 		$iotairclean = $mongo->iotairclean;
 		try
 		{
 			// we will need this both arrays later, to reduce server loading time
 			$tmpDataArray = array();
 			$measurements = $iotairclean->measurements;
+			
+			if(is_null($measurements))
+				return;
 			
 			// Read all measurements by selection 
 			$ms = $measurements->find($find)->sort($sort);

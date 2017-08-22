@@ -16,6 +16,7 @@ sudo mkdir /usr/share/nginx/html_update/css
 sudo mkdir /usr/share/nginx/html_update/fonts
 sudo mkdir /usr/share/nginx/html_update/js
 sudo mkdir /usr/share/nginx/html_update/helpers
+sudo mkdir /usr/share/nginx/html_update/img
 # basic files
 cd /usr/share/nginx/html_update/
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/iotairclean_station.php
@@ -45,6 +46,8 @@ sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/se
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/js/moment.min.js
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/js/mqttws31.min.js
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/js/npm.js
+cd /usr/share/nginx/html_update/img
+sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/img/iotairclean_logo_small.png
 cd /usr/share/nginx/html_update/helpers
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/helpers/chartjs.php
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/helpers/database.php
