@@ -1,6 +1,6 @@
 ////////////  IoT AirClean Settings
-String room = "wohnzimmer";
-String location = "home";
+String room = "testraum2.1";
+String location = "teststation2";
 // TODO currently high amount of data => MongoDB will get an out of memory error otherwise, we have to find a solution
 int intervalMeasurement = 30000; // each half minute
 //int intervalMeasurement = 1000; // each second

@@ -51,13 +51,12 @@ else
 
 
 // some configs for easier customizing
-$stationname = "wohnzimmer@home";
+$stationname = "";
 if(isset($_GET["stationname"]))
 	$stationname = $_GET["stationname"];
 
-// get mongo db connection 
+// get mongo db manager in PHP 7
 $mongo = new MongoDB\Driver\Manager("mongodb://localhost:27017");
-$iotairclean = $mongo->iotairclean;
 
 ?>
 
@@ -96,15 +95,24 @@ $iotairclean = $mongo->iotairclean;
 	
 	<?php
 		// get all available stations
-		$measurements = $iotairclean->measurements;
-
-		$keys = array("station" => 1, "room" => 1);
-		$initial = array("count" => 0);
-		$reduce = "function (obj, prev) { prev.count++; }";
-		if(is_null($measurements) == false)
-			$stations = $measurements->group($keys, $initial, $reduce);
-		else
-			$stations = array();
+		
+		$command = new MongoDB\Driver\Command([
+			'aggregate' => 'measurements',
+			'pipeline' => [
+				['$group' => ['_id' => '$station', 'value' => ['$sum' => 1]]],
+			],
+		]);
+		$stations = $mongo->executeCommand('iotairclean', $command);
+		
+		$iotairclean_stations = array();
+		foreach ($stations as $document) {
+			$id = $document->result[0]->_id;
+			$v  = $document->result[0]->value;
+			$iotairclean_stations[] = array( "id" => $id, "value" => $v);
+		}
+										
+									
+			
 	?>
 	
 	<!-- it's important, but first screen should be the graph -->
@@ -118,23 +126,23 @@ $iotairclean = $mongo->iotairclean;
 				<?php
 					echo "<table style='width:100%;'>";
 					// show on big screen an online state of all sensor stations					
-					foreach ( $stations as $id => $values )
-					{
-						foreach($values as $value){
-							// print_r($value);
-							// die();
-							$station = $value["station"];
-							$room 	 = $value["room"];
-							$class 	 = "btn-secondary";
-							if($stationname == $station)
-								$class = "btn-primary";
-							echo "
-								<tr>
-									<td><a class='btn $class' style='width:100%;' href='?stationname=$station' >$station</a></td>
-									<td><a class='btn btn-warning' style='width:100%;' href='?stationname=$station' name='state-$station' ></a></td>
-								</tr>
-							";
-						}
+					foreach ($iotairclean_stations as $s) {
+						$station = $s["id"];
+						$room 	 = $s["value"];
+						$class 	 = "btn-secondary";
+						
+						// set default station
+						if($stationname == "")
+							$stationname = $station;
+						
+						if($stationname == $station)
+							$class = "btn-primary";
+						echo "
+							<tr>
+								<td><a class='btn $class' style='width:100%;' href='?stationname=$station' >$station</a></td>
+								<td><a class='btn btn-warning' style='width:100%;' href='?stationname=$station' name='state-$station' ></a></td>
+							</tr>
+						";
 					}
 					echo "</table>";
 				?>
@@ -142,17 +150,16 @@ $iotairclean = $mongo->iotairclean;
 			<div class="col-md-8 col-sm-8 classWithPad">				
 				<select name="stationname" class="form-control">
 				<?php
+				print_r($stations);
 					// build select
-					foreach ( $stations as $id => $values )
-					{
-						foreach($values as $value){
-							$selected = "";
-							$station = $value["station"];
-							$counter = $value["count"];
-							if($stationname == $station)
-								$selected = "selected";
-							echo "<option value='$station' $selected>$station ($counter Messungen)</option>";
-						}
+					foreach ($iotairclean_stations as $s) {
+						
+						$selected = "";
+						$station = $s["id"];
+						$counter = $s["value"];
+						if($stationname == $station)
+							$selected = "selected";
+						echo "<option value='$station' $selected>$station ($counter Messungen)</option>";
 					}
 				?>
 				</select>
@@ -207,8 +214,6 @@ $iotairclean = $mongo->iotairclean;
 		?>
 		</div>
 	</div>
-	
-	
 	
     <!-- Include all compiled plugins (below), or include individual files as needed -->
     <script src="js/bootstrap.min.js"></script>
@@ -639,7 +644,7 @@ $iotairclean = $mongo->iotairclean;
 		<div class="col-md-2"></div>
 	
 	</div>
-	<div class="row iot-graph">
+	<div class="row">
 		<div class="col-md-4">
 		</div>
 		<div class="col-md-4 text-center classWithPad">
