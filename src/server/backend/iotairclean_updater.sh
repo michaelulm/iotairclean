@@ -4,7 +4,11 @@ echo "IoT AirClean Update started!";
 
 # Update Current Python Scripts to get Data
 rm iotairclean_subscriber.py
+rm iotairclean_config.py
 wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/backend/iotairclean_subscriber.py
+wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/backend/iotairclean_config.py
+wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/backend/iotairclean_prediction.py
+wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/backend/iotairclean_pushover.py
 chmod +x iotairclean_subscriber.py
 
 echo "IoT AirClean Background Tasks updated!";
@@ -21,7 +25,7 @@ sudo mkdir /usr/share/nginx/html_update/img
 cd /usr/share/nginx/html_update/
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/iotairclean_station.php
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/iotairclean_visualization.php
-sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/iotairclean_logo.png
+sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/index.php
 # js, css and fonts
 cd /usr/share/nginx/html_update/css
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/css/bootstrap.css

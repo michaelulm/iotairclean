@@ -60,5 +60,6 @@ cd /home/pi
 mkdir iotairclean
 cd iotairclean
 wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/backend/iotairclean_update.sh
+wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/backend/iotairclean_config_station.py
 chmod +x iotairclean_update.sh
 ./iotairclean_update.sh
