@@ -99,18 +99,19 @@ $mongo = new MongoDB\Driver\Manager("mongodb://localhost:27017");
 		$command = new MongoDB\Driver\Command([
 			'aggregate' => 'measurements',
 			'pipeline' => [
-				['$group' => ['_id' => '$station', 'value' => ['$sum' => 1]]],
+				['$group' => ['_id' => '$station']],
 			],
 		]);
-		$stations = $mongo->executeCommand('iotairclean', $command);
+		$stations = $mongo->executeCommand("iotairclean", $command);
 		
 		$iotairclean_stations = array();
 		foreach ($stations as $document) {
-			$id = $document->result[0]->_id;
-			$v  = $document->result[0]->value;
-			$iotairclean_stations[] = array( "id" => $id, "value" => $v);
+			foreach($document->result as $result){
+				$id = $result->_id;
+				$v  = $result->value;
+				$iotairclean_stations[] = array( "id" => $id, "value" => $v);
+			}
 		}
-										
 									
 			
 	?>
