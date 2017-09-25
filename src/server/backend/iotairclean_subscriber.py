@@ -102,9 +102,18 @@ while True:
 			# set notification message back to false
 			for k, v in iotairclean_config.limits.items():
 				print str(k) + " " + str(v)
-				if int(str(jmsg['co2'])) <= iotairclean_config.settings["air_fresh"]:
+				# only if already sent and resetlimits reached (fallen co2 value)
+				if iotairclean_config.limits[k] == True and int(str(jmsg['co2'])) < int(str(iotairclean_config.resetlimits[k])):
 					iotairclean_config.limits[k] = False
-	
+					pushover("IoT AirClean Station " + iotairclean_config.settings["station"] + " unter " + str(iotairclean_config.resetlimits[k]) +" ppm CO2 gesunken", '', 0, 0)
+			# notify user about successful complete Fresh Air
+			if int(str(jmsg['co2'])) <= iotairclean_config.settings["air_fresh"]:
+				pushover("IoT AirClean Station " + iotairclean_config.settings["station"] + " frische Luft :)", '', 0, 0)
+
+			# just re-check current values (debug)
+			for k, v in iotairclean_config.limits.items():
+				print str(k) + " " + str(v)
+				
 			# starts prediction calculation
 			doCalcPrediction(jmsg, client)
 			

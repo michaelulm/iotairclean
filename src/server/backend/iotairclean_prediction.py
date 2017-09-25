@@ -91,5 +91,5 @@ def doCalcPrediction(jmsg, client):
 		jmsg['co2'] = value
 		client.publish("/iotairclean", json.dumps(jmsg))
 		
-		for k, v in iotairclean_config.limits.items():
-			print k
+		#for k, v in iotairclean_config.limits.items():
+		#	print k
