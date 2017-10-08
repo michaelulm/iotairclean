@@ -1,29 +1,21 @@
 <?php
 
+require_once("api.settings.php");
+
 // TODO REPLACE with Mobile App and FCM (Firebase)
 
 // current example Request (POST and GET both possible)
 // http://www.iot-airclean.at/api.pushover.php?user=mike&minutes=10&ppm=434&token=IOTAIRCLEAN_TOKEN_NEEDED
 
-// app token for iot airclean, this is the app token for https://pushover.net
-$app_token = "APP_TOKEN";
 
-// user tokens for each user stored in pushover, there is only a user token needed
-$user_key = array (
-	"mike" 		=> "PUSHOVER_TOKEN_NEEDED",
-	"..." 		=> "...",
-
-);
-// user token mapping for iotairclean api, that only a mapping token and a user is needed to configured at an iotairclean station
-$user_token = array (
-	"mike" 		=> "IOTAIRCLEAN_TOKEN_NEEDED",
-	"..." 		=> "...",
-);
+// demo purpose
+// echo $user_token[$_REQUEST["user"]] . "<br/>";
 
 // TODO IMPROVE SECURITY CHECK
 // check token of current user station, not high secure, but for our testing purpose a quick check
 if($user_token[$_REQUEST["user"]] !== urldecode($_REQUEST["token"])){
-	die("ACCESS DENIED to");// '" . $_REQUEST["user"] . "' and token '" . $_REQUEST["token"] . "'"); // for debug purpose
+	echo "\n". $_REQUEST["user"] . ", token '" . $_REQUEST["token"] . "'";
+	die("ACCESS DENIED to"); // for debug purpose
 }
 
 // TODO additional checks, but currently not necessary for first draft

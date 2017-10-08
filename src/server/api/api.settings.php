@@ -10,3 +10,6 @@ $user_token = array (
 	"mike" 		=> "IOTAIRCLEAN_TOKEN_NEEDED",
 	"..." 		=> "...",
 );
+
+// app token for iot airclean, this is the app token for https://pushover.net
+$app_token = "APP_TOKEN";
