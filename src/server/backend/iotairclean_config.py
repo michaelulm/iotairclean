@@ -1,5 +1,6 @@
 # adds station configuration
 import iotairclean_config_station
+import time
 
 def init():
 
@@ -7,13 +8,20 @@ def init():
 	iotairclean_config_station.init()				# Call only once
 	global settings
 	global limits
-	global resetlimits
+	global pushDone
+	global pushDoneShortTime
+	global resetLimits
+	global resetTimes
 	settings = {}
 	limits = {}
-	resetlimits = {}
+	pushDone = {}
+	pushDoneShortTime = {}
+	resetLimits = {}
+	resetTimes = {}
 	
 	# global iot airclean configuration
-	settings["station"] 	= iotairclean_config_station.private["stationname"]
+	settings["station"] 					= iotairclean_config_station.private["stationname"]
+	settings["transfer_to_iotairclean_at"] 	= iotairclean_config_station.private["transfer_to_iotairclean_at"]
 	settings["air_fresh"] 	= 450
 	
 	# global current limits, will trigger push notification after reaching those limits
@@ -21,10 +29,23 @@ def init():
 	limits[1200] 	= False
 	limits[1600] 	= False
 	
+	pushDone[800] 	= (time.time() - 1800)
+	pushDone[1200] 	= (time.time() - 1800)
+	pushDone[1600] 	= (time.time() - 1800)
+	
+	pushDoneShortTime[800] 		= (time.time() - 300)
+	pushDoneShortTime[1200] 	= (time.time() - 300)
+	pushDoneShortTime[1600] 	= (time.time() - 300)
+	
 	# global reset limits, to re-activate push notification for those limits
-	resetlimits[800] 	= 600
-	resetlimits[1200] 	= 700
-	resetlimits[1600] 	= 750
+	resetLimits[800] 	= 600
+	resetLimits[1200] 	= 700
+	resetLimits[1600] 	= 750
+	
+	# global reset times, to prevent multiple pushes in short time
+	resetTimes[800] 	= (time.time() - 300)
+	resetTimes[1200] 	= (time.time() - 300)
+	resetTimes[1600] 	= (time.time() - 300)
 	
 	
 	# pushover mapping for iotairclean

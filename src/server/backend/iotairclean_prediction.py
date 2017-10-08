@@ -1,5 +1,6 @@
 # Prediction methods for pre-calculation trend of co2  values
 
+import time
 import json
 import iotairclean_config
 from iotairclean_pushover import pushover
@@ -81,10 +82,27 @@ def doCalcPrediction(jmsg, client):
 		
 		# set notification message back to false
 		for k, v in iotairclean_config.limits.items():
-			if int(float(str(value))) > int(k) and v == False:
+			# also check if push is already be done
+			if int(float(str(value))) > int(k) and v == False and iotairclean_config.pushDone[k] < (time.time() - 1800):
 				iotairclean_config.limits[k] = True
 				# send a push notification to do airing in a few minutes
 				pushover("", str(jmsg['room']), int(float(str(co2orig))), int(float(str(predictionNr / 2))) )
+				iotairclean_config.pushDone[k] = time.time()
+		
+		# check highest limit, for dynamic future settings
+		highestLimit = 0
+		for k, v in iotairclean_config.limits.items():
+			if highestLimit < int(k):
+				highestLimit = int(k)
+		
+		# do last notification 5 Minutes before it's "too late", and every 5 minutes again
+		if predictionNr == 10:
+			for k, v in iotairclean_config.limits.items():
+				# also check if push is already be done, only for highest limit
+				if int(float(str(value))) > int(k) and int(k) == highestLimit and iotairclean_config.pushDoneShortTime[k] < (time.time() - 300):
+					# send a push notification to do airing in a few minutes
+					pushover("", str(jmsg['room']), int(float(str(co2orig))), int(float(str(predictionNr / 2))) )
+					iotairclean_config.pushDone[k] = time.time()
 		
 		predictionNr = predictionNr + 1	
 		jmsg['counter'] = predictionNr

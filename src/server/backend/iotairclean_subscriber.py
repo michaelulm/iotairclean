@@ -1,16 +1,17 @@
 #!/usr/bin/env python
 
-import paho.mqtt.client as mqtt				# MQTT send / receive messages
-import json									# JSON encoding / decoding
-import serial
-import sys
-import socket								# socket connection for xbee communication
+import paho.mqtt.client as mqtt						# MQTT send / receive messages
+import json											# JSON encoding / decoding
+import serial,sys,os
+import socket										# socket connection for xbee communication
+import time											# for current timestamp
 
-import iotairclean_config					# adds global configuration
-from iotairclean_pushover import pushover	# adds pushover method
+import iotairclean_config							# adds global configuration
+from iotairclean_pushover import pushover			# adds pushover method
+from iotairclean_transfer import transferdata		# adds transfer to server method
 from iotairclean_prediction import doCalcPrediction # adds prediction method for pre-calculation
-from pymongo import MongoClient				# MongoDB client
-from datetime import datetime				# DateTime Information 
+from pymongo import MongoClient						# MongoDB client
+from datetime import datetime						# DateTime Information 
 
 # import global configuration
 iotairclean_config.init()					# Call only once
@@ -98,14 +99,21 @@ while True:
 				})
 			# delegate incoming message to web ui and mqtt subscriber for handling the message
 			client.publish("/iotairclean", incoming)
+			# transfer to server if user allows transfer 
+			if iotairclean_config.settings["transfer_to_iotairclean_at"] == True:
+				print "IoT AirClean Transfer to Server now"
+				transferdata(jmsg['room'], jmsg['station'], jmsg['location'], jmsg['co2'], jmsg['t'], jmsg['h']);
 	
 			# set notification message back to false
 			for k, v in iotairclean_config.limits.items():
 				print str(k) + " " + str(v)
-				# only if already sent and resetlimits reached (fallen co2 value)
-				if iotairclean_config.limits[k] == True and int(str(jmsg['co2'])) < int(str(iotairclean_config.resetlimits[k])):
+				# only if already sent and resetLimits reached (fallen co2 value)
+				if iotairclean_config.limits[k] == True and int(str(jmsg['co2'])) < int(str(iotairclean_config.resetLimits[k])):
 					iotairclean_config.limits[k] = False
-					pushover("IoT AirClean Station " + iotairclean_config.settings["station"] + " unter " + str(iotairclean_config.resetlimits[k]) +" ppm CO2 gesunken", '', 0, 0)
+					#only push again after some time
+					if resetTimes[k] < (time.time() - 300):
+						resetTimes[k] = time.time()
+						pushover("IoT AirClean Station " + iotairclean_config.settings["station"] + " unter " + str(iotairclean_config.resetLimits[k]) +" ppm CO2 gesunken", '', 0, 0)
 			# notify user about successful complete Fresh Air
 			if int(str(jmsg['co2'])) <= iotairclean_config.settings["air_fresh"]:
 				pushover("IoT AirClean Station " + iotairclean_config.settings["station"] + " frische Luft :)", '', 0, 0)
@@ -124,4 +132,8 @@ while True:
 		print "Unexpected error 0:", sys.exc_info()[0]
 		print "Unexpected error 1:", sys.exc_info()[1]
 		print "Unexpected error 2:", sys.exc_info()[2]
+		
+		exc_type, exc_obj, exc_tb = sys.exc_info()
+		fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+		print(exc_type, fname, exc_tb.tb_lineno)
 
