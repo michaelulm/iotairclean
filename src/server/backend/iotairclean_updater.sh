@@ -5,9 +5,13 @@ echo "IoT AirClean Update started!";
 # Update Current Python Scripts to get Data
 rm iotairclean_subscriber.py
 rm iotairclean_config.py
+rm iotairclean_prediction.py
+rm iotairclean_transfer.py
+rm iotairclean_pushover.py
 wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/backend/iotairclean_subscriber.py
 wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/backend/iotairclean_config.py
 wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/backend/iotairclean_prediction.py
+wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/backend/iotairclean_transfer.py
 wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/backend/iotairclean_pushover.py
 chmod +x iotairclean_subscriber.py
 
