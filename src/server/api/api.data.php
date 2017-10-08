@@ -25,6 +25,7 @@ $humidity	= $_REQUEST["humidity"];
 $room 		= $_REQUEST["room"];
 $station	= $_REQUEST["station"];
 $location	= $_REQUEST["location"];
+$datetime 	= date('Y-m-d H:i:s');
 
 // use Wordpress Settings, possible to replace with own Database settings or other existing settings file
 $servername = DB_HOST;
@@ -41,8 +42,8 @@ if ($conn->connect_error) {
 }
 
 // prepare and bind
-$stmt = $conn->prepare("INSERT INTO {$table_prefix}iotairclean_measurements (station, location, room, measurement_type, measurement_value) VALUES (?, ?, ?, ?, ?)");
-$stmt->bind_param("ssssd", $station, $location, $room, $measurement_type, $measurement_value);
+$stmt = $conn->prepare("INSERT INTO {$table_prefix}iotairclean_measurements (station, location, room, measurement_type, measurement_value, measurement_datetime) VALUES (?, ?, ?, ?, ?, ?)");
+$stmt->bind_param("ssssds", $station, $location, $room, $measurement_type, $measurement_value, $datetime);
 
 // set parameters and execute for CO2 value
 $measurement_type 	= "ppm";
