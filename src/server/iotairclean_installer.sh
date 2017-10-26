@@ -2,6 +2,12 @@
 
 ### IoT AirClean Basis Installation Script ###
 
+# update raspberry, to improve installation for "older" raspberry installation
+sudo apt-get update
+sudo apt-get dist-upgrade -y
+sudo apt-get upgrade -y
+sudo apt-get install unattended-upgrades -y
+
 # install nginx
 sudo apt-get install -t stretch nginx -y
 sudo /etc/init.d/nginx start

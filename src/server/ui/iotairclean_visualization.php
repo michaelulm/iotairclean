@@ -71,27 +71,24 @@ $mongo = new MongoDB\Driver\Manager("mongodb://localhost:27017");
     <title>IoT AirClean Visualisierung</title>
 	 <!-- Bootstrap -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/jquery-1.12.1-ui-base.css" rel="stylesheet">			<!-- needed for datepicker in all browsers -->
 	
     <script src="js/jquery-3.2.1.min.js"></script>
+    <script src="js/jquery-1.12.1-ui.min.js"></script>						<!-- needed for datepicker in all browsers -->
 	<script src="js/moment.min.js"></script>
+	<script src="js/moment-timezone.min.js"></script>
 	<script src="js/Chart.min.js"></script>
 	<script src="js/mqttws31.min.js" type="text/javascript"></script>
 	<style>
-	.classWithPad { margin:10px; padding:10px; }
+	.iotaircleanWithPad { margin:10px; padding:10px; }
+	.iotaircleanAutoWidth { width: 100%;}
+	.iotaircleanWithTopBottomMargin { width:100%; margin:10px 0px 10px 0px;}
+	.iotaircleanFill { height:100vh;}
+	#compareForm { width:100%; margin:20px 0px 20px 0px;}
 	</style>
   </head>
   <body>
 	
-	
-	<div class="row iot-graph">
-		<div class="col-md-1 col-sm-0">
-		</div>
-		<div class="col-md-10 col-sm-12 classWithPad">
-			<canvas id="canvas"></canvas>
-		</div>
-		<div class="col-md-1 col-sm-0">
-		</div>
-	</div>
 	
 	<?php
 		// get all available stations
@@ -111,85 +108,91 @@ $mongo = new MongoDB\Driver\Manager("mongodb://localhost:27017");
 				$v  = $result->value;
 				$iotairclean_stations[] = array( "id" => $id, "value" => $v);
 			}
-		}
-									
+		}							
 			
 	?>
 	
-	<!-- it's important, but first screen should be the graph -->
-	<form id="compareForm">
-		<div class="row">
-			<div class="col-md-1 col-sm-0">
-			</div>
-			<div class="col-md-2 col-sm-4">
-				<img src="img/iotairclean_logo_small.png" />	
-				
-				<?php
-					echo "<table style='width:100%;'>";
-					// show on big screen an online state of all sensor stations					
-					foreach ($iotairclean_stations as $s) {
-						$station = $s["id"];
-						$room 	 = $s["value"];
-						$class 	 = "btn-secondary";
-						
-						// set default station
-						if($stationname == "")
-							$stationname = $station;
-						
-						if($stationname == $station)
-							$class = "btn-primary";
-						echo "
-							<tr>
-								<td><a class='btn $class' style='width:100%;' href='?stationname=$station' >$station</a></td>
-								<td><a class='btn btn-warning' style='width:100%;' href='?stationname=$station' name='state-$station' ></a></td>
-							</tr>
-						";
+	
+	<div class="row iot-graph iotaircleanAutoWidth iotaircleanFill" >
+		<div class="col-md-1 col-sm-2 text-center">
+			<!-- redesign for better overview -->
+			<img src="img/iotairclean_logo_small.png" class="iotaircleanWithTopBottomMargin"	/>
+			<?php
+				echo "<table style='width:100%;'>";
+				// show on big screen an online state of all sensor stations					
+				foreach ($iotairclean_stations as $s) {
+					$station = $s["id"];
+					$room 	 = $s["value"];
+					$class 	 = "btn-secondary";
+					
+					// set default station
+					if($stationname == "")
+						$stationname = $station;
+					
+					
+					$stationShortnameArray = explode("@", $station);
+					$stationShortname = $stationShortnameArray[0];
+					
+					if($stationname == $station){
+						$class = "btn-primary";
+						$stationHeader = $stationShortname;
 					}
-					echo "</table>";
-				?>
-			</div>
-			<div class="col-md-8 col-sm-8 classWithPad">				
-				<select name="stationname" class="form-control">
+					
+					echo "
+						<div><a class='btn $class' style='width:100%;' href='?stationname=$station' >$stationShortname</a><a class='btn btn-warning' style='width:100%;' href='?stationname=$station' name='state-$station' ></a><div>
+					";
+				}
+				echo "</table>";
+			?>
+				
+			<form id="compareForm" >	
 				<?php
-				print_r($stations);
 					// build select
 					foreach ($iotairclean_stations as $s) {
 						
 						$selected = "";
 						$station = $s["id"];
 						$counter = $s["value"];
-						if($stationname == $station)
-							$selected = "selected";
-						echo "<option value='$station' $selected>$station ($counter Messungen)</option>";
+						if($stationname == $station){
+							echo "<input type='hidden' value='$station' />";
+						}
+						// echo "<option value='$station' $selected>$station ($counter Messungen)</option>";
 					}
 				?>
-				</select>
 				
-					<label for="datePrimary">dieses Datum </label>
-					<input type="date" name="datePrimary" id="datePrimary" value="<?php echo date('Y-m-d', $datePrimaryForm); ?>" >
-					<label for="dateSecondary"> mit jenem Datum </label>
-					<input type="date" name="dateSecondary" id="dateSecondary" value="<?php echo date('Y-m-d', $dateSecondaryForm); ?>" >
-					<input class="btn btn-default" type="submit" value="vergleichen"><br/>
-				  <a class="btn btn-default" href="<?php echo basename($_SERVER["SCRIPT_FILENAME"], '') ;?>">zurücksetzen</a>
-			</div>
-			<div class="col-md-1 col-sm-0">
-			</div>
+				<label for="datePrimary">Datum </label>
+				<input type="text" name="datePrimary" id="datePrimary" value="<?php echo date('d.m.Y', $datePrimaryForm); ?>" size="10">
+				<label for="dateSecondary">mit Datum </label>
+				<input type="text" name="dateSecondary" id="dateSecondary" value="<?php echo date('d.m.Y', $dateSecondaryForm); ?>"  size="10">
+				<input class="btn btn-default iotaircleanAutoWidth iotaircleanWithTopBottomMargin" type="submit" value="vergleichen"><br/>
+				<a class="btn btn-default iotaircleanAutoWidth iotaircleanWithTopBottomMargin" href="<?php echo basename($_SERVER["SCRIPT_FILENAME"], '') ;?>">zurücksetzen</a>
+			</form>	
+				
 		</div>
-	</form>	
+		<div class="col-md-10 col-sm-10">
+			<p><strong>Aktuelle Sensorbox: <?php echo $stationHeader;?></strong></p>
+			<canvas id="canvas"></canvas>
+		</div>
+		<div class="col-md-1 col-sm-0">
+		</div>
+	</div>
 	
-	<div class="row">
-		<div class="col-md-2"></div>
-		<div class="col-md-2"></div>
-		<div class="col-md-2">
+	
+	
+	
+	<div class="row iotaircleanWithTopBottomMargin iotaircleanAutoWidth">
+		<div class="col-md-1 col-sm-0"></div>
+		<div class="col-md-2 col-sm-1"></div>
+		<div class="col-md-3 col-sm-5">
 			<h3>Aktueller Zeitraum</h3>
 			<canvas id="canvasPie"></canvas>
 		</div>		
-		<div class="col-md-2">
+		<div class="col-md-3 col-sm-5">
 			<h3>Vergleichszeitraum</h3>
 			<canvas id="canvasPieCompare"></canvas>
 		</div>		
-		<div class="col-md-2"></div>
-		<div class="col-md-2"></div>
+		<div class="col-md-2 col-sm-1"></div>
+		<div class="col-md-1 col-sm-0"></div>
 	</div>
 	
 <?php
@@ -207,7 +210,7 @@ $mongo = new MongoDB\Driver\Manager("mongodb://localhost:27017");
 
 ?>
 		
-	<div class="row">
+	<div class="row iotaircleanAutoWidth">
 		<div class="col-md-12">
 		<?php
 			detectNobody($nobodyMeasurementsArray, $othersArray);
@@ -220,7 +223,34 @@ $mongo = new MongoDB\Driver\Manager("mongodb://localhost:27017");
     <script src="js/bootstrap.min.js"></script>
 	
 	<script>
-
+	
+		var datepickerOptions = {
+			// german
+			prevText: '&#x3c;zurück', prevStatus: '',
+			prevJumpText: '&#x3c;&#x3c;', prevJumpStatus: '',
+			nextText: 'Vor&#x3e;', nextStatus: '',
+			nextJumpText: '&#x3e;&#x3e;', nextJumpStatus: '',
+			currentText: 'heute', currentStatus: '',
+			todayText: 'heute', todayStatus: '',
+			clearText: '-', clearStatus: '',
+			closeText: 'schließen', closeStatus: '',
+			monthNames: ['Januar','Februar','März','April','Mai','Juni',
+			'Juli','August','September','Oktober','November','Dezember'],
+			monthNamesShort: ['Jan','Feb','Mär','Apr','Mai','Jun',
+			'Jul','Aug','Sep','Okt','Nov','Dez'],
+			dayNames: ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'],
+			dayNamesShort: ['So','Mo','Di','Mi','Do','Fr','Sa'],
+			dayNamesMin: ['So','Mo','Di','Mi','Do','Fr','Sa'],
+			
+			// other options
+			dateFormat: 'dd.mm.yy',
+			firstDay: 1 
+			
+		};
+	
+		jQuery( "#datePrimary" ).datepicker(datepickerOptions);
+		jQuery( "#dateSecondary" ).datepicker(datepickerOptions);
+		
         var timeFormat = 'DD.MM.YYYY HH:mm:ss';
         var lastTime;
         var color = Chart.helpers.color;
@@ -240,7 +270,7 @@ $mongo = new MongoDB\Driver\Manager("mongodb://localhost:27017");
 					<?php createDataset($measuredFrom, $measuredTo, "Luftfeuchtigkeit (%)", "#2D69FF", $othersArray, "y-axis-dht", "humidity");?>, 
 					<?php createDataset($measuredFrom, $measuredTo, "abwesend", "#C0C0C0", $nobodyMeasurementsArray, "y-axis-ppm", "ppm", "parseDB", "fill", 0.2, 0.2);?>, 
 					<?php createDataset($measuredFrom, $measuredTo, "gelüftet", "#799E1A", $airingMeasurementsArray, "y-axis-ppm", "ppm", "parseDB", "fill", 0.2, 0.2);?>, 
-					<?php createDataset($measuredFrom, $measuredTo, "CO2 (ppm) Vergleich", "#E5FFCC", $compareArray, "y-axis-ppm", "ppm", "compareDB");?>
+					<?php createDataset($measuredFrom, $measuredTo, "CO2 (ppm) Vergleich", "#c2c4c0", $compareArray, "y-axis-ppm", "ppm", "compareDB");?>
                     ]
             }
             ,
@@ -301,7 +331,7 @@ $mongo = new MongoDB\Driver\Manager("mongodb://localhost:27017");
 		/* parse DB date value for correct timezone */
 		function parseTimezoneOffset(value){
 			var offset = 2;
-			if(moment().isDST() == false)
+			if(moment().tz('Europe/Vienna').isDST() == false)
 				offset = 1;
 			
 			var duration = moment.duration({'hours' : offset});
@@ -315,25 +345,34 @@ $mongo = new MongoDB\Driver\Manager("mongodb://localhost:27017");
 		function compareDB(value){
 			var compareArea = moment.duration({'seconds' : <?php echo $diffInSeconds; ?>});
 			var compareDay  = moment.duration ({'hours' : <?php echo $diffInDays * 24; ?>});
-			return parseTimezoneOffset(moment(value).add(compareArea).add(compareDay));
+			return parseTimezoneOffset(moment(value).tz('Europe/Vienna').add(compareArea).add(compareDay));
 		}
 		/* parse lastTime of last Measurement and add counter of prediction for visualization */
 		function parsePrediction(value, counter){
 			var seconds = 30 * counter;
-			var addPredictionTime = moment.duration({'seconds' : seconds});
+			
+			var d = new Date()
+			var offset = 0;
+			// workaround for local runtime with UTC and Raspberry Touch Display
+			if( (d.getTimezoneOffset()/60) == 0){
+				var offset = 2;
+				if(moment().tz('Europe/Vienna').isDST() == false)
+					offset = 1;
+			}
+			var addPredictionTime = moment.duration({'seconds' : seconds, "hours" : offset});
 			return moment(value).add(addPredictionTime);
 		}
 
-        function newDate(days) {
-            return moment().toDate();
+        function newDate() {
+            return moment().tz('Europe/Vienna').toDate();
         }
 
         function newDateString(days) {
-            return moment().format(timeFormat);
+            return moment().tz('Europe/Vienna').format(timeFormat);
         }
 
         function newTimestamp(days) {
-            return moment().unix();
+            return moment().tz('Europe/Vienna').unix();
         }
 		
 
@@ -536,10 +575,11 @@ $mongo = new MongoDB\Driver\Manager("mongodb://localhost:27017");
 		
 	
 	
-	<div class="row">
-		<div class="col-md-2"></div>
-		<div class="col-md-2"></div>
-		<div class="col-md-4 classWithPad">
+	
+	<div class="row iotaircleanWithTopBottomMargin iotaircleanAutoWidth">
+		<div class="col-md-1 col-sm-0"></div>
+		<div class="col-md-2 col-sm-1"></div>
+		<div class="col-md-6 col-sm-10">
 			<table  class="table">
 				<tr>
 					<th></th>
@@ -641,14 +681,14 @@ $mongo = new MongoDB\Driver\Manager("mongodb://localhost:27017");
 				</tr>
 			</table>
 		</div>
-		<div class="col-md-2"></div>
-		<div class="col-md-2"></div>
+		<div class="col-md-2 col-sm-1"></div>
+		<div class="col-md-1 col-sm-0"></div>
 	
 	</div>
-	<div class="row">
+	<div class="row iotaircleanWithTopBottomMargin iotaircleanAutoWidth">
 		<div class="col-md-4">
 		</div>
-		<div class="col-md-4 text-center classWithPad">
+		<div class="col-md-4 text-center">
 			mehr Details zu IoT AirClean auf <a href="http://www.iot-airclean.at">www.iot-airclean.at</a>
 		</div>
 		<div class="col-md-4">
