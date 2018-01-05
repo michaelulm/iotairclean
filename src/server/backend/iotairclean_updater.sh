@@ -3,11 +3,11 @@
 echo "IoT AirClean Update started!";
 
 # Update Current Python Scripts to get Data
-rm iotairclean_subscriber.py
-rm iotairclean_config.py
-rm iotairclean_prediction.py
-rm iotairclean_transfer.py
-rm iotairclean_pushover.py
+sudo rm iotairclean_subscriber.py
+sudo rm iotairclean_config.py
+sudo rm iotairclean_prediction.py
+sudo rm iotairclean_transfer.py
+sudo rm iotairclean_pushover.py
 wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/backend/iotairclean_subscriber.py
 wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/backend/iotairclean_config.py
 wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/backend/iotairclean_prediction.py
@@ -51,6 +51,7 @@ sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/se
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/js/bootstrap.min.js
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/js/Chart.min.js
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/js/jquery-3.2.1.min.js
+sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/js/jquery-1.12.1-ui.min.js
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/js/moment.min.js
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/js/mqttws31.min.js
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/js/npm.js
