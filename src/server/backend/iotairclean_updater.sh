@@ -40,6 +40,7 @@ sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/se
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/css/bootstrap-theme.css.map
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/css/bootstrap-theme.min.css
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/css/bootstrap-theme.min.css.map
+sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/css/jquery-1.12.1-ui-base.css
 cd /usr/share/nginx/html_update/fonts
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/fonts/glyphicons-halflings-regular.eot
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/fonts/glyphicons-halflings-regular.svg
