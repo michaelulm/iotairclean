@@ -66,8 +66,8 @@ sudo cp /etc/rc.local /etc/rc.local.tmp
 sudo rm -f /etc/rc.local
 sudo sed '$ d' /etc/rc.local.tmp > /home/pi/iotairclean/rc.local
 sudo rm -f /etc/rc.local.tmp
-sudo echo "/bin/sleep 15  && /etc/init.d/mosquitto start &" >> /home/pi/iotairclean/rc.local
-sudo echo "/bin/sleep 30  && /home/pi/iotairclean/iotairclean_subscriber.py &" >> /home/pi/iotairclean/rc.local
+sudo echo "/bin/sleep 30 && /etc/init.d/mosquitto restart &" >> /home/pi/iotairclean/rc.local
+sudo echo "/bin/sleep 45 && /home/pi/iotairclean/iotairclean_subscriber.py &" >> /home/pi/iotairclean/rc.local
 sudo echo "exit 0" >> /home/pi/iotairclean/rc.local
 sudo cp /home/pi/iotairclean/rc.local /etc/rc.local
 sudo chmod 0755 /etc/rc.local

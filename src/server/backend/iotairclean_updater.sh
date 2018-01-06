@@ -53,6 +53,7 @@ sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/se
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/js/jquery-3.2.1.min.js
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/js/jquery-1.12.1-ui.min.js
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/js/moment.min.js
+sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/js/moment-timezone.min.js
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/js/mqttws31.min.js
 sudo wget https://raw.githubusercontent.com/michaelulm/iotairclean/master/src/server/ui/js/npm.js
 cd /usr/share/nginx/html_update/img
