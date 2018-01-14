@@ -102,7 +102,7 @@ while True:
 			# transfer to server if user allows transfer 
 			if iotairclean_config.settings["transfer_to_iotairclean_at"] == True:
 				print "IoT AirClean Transfer to Server now"
-				transferdata(jmsg['room'], jmsg['station'], jmsg['location'], jmsg['co2'], jmsg['t'], jmsg['h']);
+				transferdata(jmsg['room'], jmsg['station'], jmsg['location'], iotairclean_config.settings["serial"], jmsg['co2'], jmsg['t'], jmsg['h'] );
 	
 			# set notification message back to false
 			for k, v in iotairclean_config.limits.items():

@@ -23,6 +23,7 @@ def init():
 	settings["station"] 					= iotairclean_config_station.private["stationname"]
 	settings["transfer_to_iotairclean_at"] 	= iotairclean_config_station.private["transfer_to_iotairclean_at"]
 	settings["air_fresh"] 	= 450
+	settings["serial"] = getserial()
 	
 	# global current limits, will trigger push notification after reaching those limits
 	limits[800] 	= False
@@ -51,3 +52,19 @@ def init():
 	# pushover mapping for iotairclean
 	settings["user"]  = iotairclean_config_station.private["user"] 
 	settings["token"] = iotairclean_config_station.private["token"] 
+	
+
+# use raspberry serial for unique station id
+def getserial():
+	# Extract serial from cpuinfo file
+	cpuserial = "0000000000000000"
+	try:
+		f = open('/proc/cpuinfo','r')
+		for line in f:
+			if line[0:6]=='Serial':
+				cpuserial = line[10:26]
+		f.close()
+	except:
+		cpuserial = "ERROR000000000"
+
+	return cpuserial

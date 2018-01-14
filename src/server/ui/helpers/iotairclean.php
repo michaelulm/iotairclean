@@ -114,7 +114,7 @@
 		$timeslot    = 10;   	# 10 minutes will be compared to detect airing
 		$maxListLen  = intval(($timeslot * 60) / $interval);
 		
-		$ppmIncreaseLimit = 500;
+		$ppmIncreaseLimit = 600; // higher limit for better detection of airing with +/- range
 		
 		// needed variables for detecting airing
 		$tmpItem["ppm"] = 0;
